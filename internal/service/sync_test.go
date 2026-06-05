@@ -293,4 +293,52 @@ func TestSyncerPullProtocols(t *testing.T) {
 			t.Errorf("PullProtocols() returned %d protocols, want 1 (global protocol)", len(protocols))
 		}
 	})
+
+	t.Run("pull protocols since returns newer protocols", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_ = aStore.Create(ctx, models.AgentSpec{
+			AgentID:   "agent-since",
+			AgentType: models.AgentTypeSystemd,
+			Metadata:  models.AgentMetadata{Tags: []string{"network"}},
+		})
+
+		// Create protocols (ordered by creation time)
+		oldID, _ := pStore.Create(ctx, models.ProtocolRecord{
+			Title:      "Old Protocol",
+			TargetTags: []string{"network"},
+			IsActive:   true,
+		})
+		_, _ = pStore.Create(ctx, models.ProtocolRecord{
+			Title:      "New Protocol",
+			TargetTags: []string{"network"},
+			IsActive:   true,
+		})
+
+		protocols, err := syncer.PullProtocolsSince(ctx, "agent-since", oldID)
+		if err != nil {
+			t.Fatalf("PullProtocolsSince() unexpected error: %v", err)
+		}
+		if len(protocols) != 1 {
+			t.Errorf("PullProtocolsSince() returned %d protocols, want 1", len(protocols))
+		}
+		if len(protocols) > 0 && protocols[0].Title != "New Protocol" {
+			t.Errorf("PullProtocolsSince() Title = %q, want %q", protocols[0].Title, "New Protocol")
+		}
+	})
+
+	t.Run("pull protocols since with non-existent agent returns error", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_, err := syncer.PullProtocolsSince(ctx, "nonexistent", "some-id")
+		if err == nil {
+			t.Error("PullProtocolsSince() expected error for non-existent agent")
+		}
+	})
 }

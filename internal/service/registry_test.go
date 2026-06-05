@@ -334,6 +334,24 @@ func TestRegistryHeartbeat(t *testing.T) {
 			t.Fatal("Heartbeat() expected error for nonexistent, got nil")
 		}
 	})
+
+	t.Run("agent count returns correct number", func(t *testing.T) {
+		store := storemock.NewAgentStore()
+		reg := NewRegistry(store)
+
+		spec1 := models.AgentSpec{AgentID: "agent-1", AgentType: models.AgentTypeSystemd}
+		spec2 := models.AgentSpec{AgentID: "agent-2", AgentType: models.AgentTypeMCPClient}
+		_ = store.Create(ctx, spec1)
+		_ = store.Create(ctx, spec2)
+
+		count, err := reg.AgentCount(ctx)
+		if err != nil {
+			t.Fatalf("AgentCount() unexpected error: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("AgentCount() = %d, want 2", count)
+		}
+	})
 }
 
 

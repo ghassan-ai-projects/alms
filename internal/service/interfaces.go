@@ -17,6 +17,7 @@ type AgentStore interface {
 	Delete(ctx context.Context, agentID string) error
 	Heartbeat(ctx context.Context, agentID string) (time.Time, error)
 	List(ctx context.Context, filter map[string]string, limit, offset int) ([]models.AgentSpec, error)
+	Count(ctx context.Context) (int, error)
 }
 
 // LearningStore defines the data access interface for learnings.
@@ -28,6 +29,8 @@ type LearningStore interface {
 	Search(ctx context.Context, query string, ltype string, tags []string, limit int) ([]models.LearningRecord, error)
 	SoftDelete(ctx context.Context, learningID string) error
 	ExpectedSyncIDs(ctx context.Context, agentID string, since time.Time) ([]string, error)
+	Supersede(ctx context.Context, oldID, newID string) error
+	UpdateScore(ctx context.Context, learningID string, score float64) error
 }
 
 // ProtocolStore defines the data access interface for protocols.

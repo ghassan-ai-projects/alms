@@ -271,6 +271,32 @@ func (s *LearningStore) ExpectedSyncIDs(ctx context.Context, agentID string, sin
 	return ids, nil
 }
 
+// Supersede marks a learning as superseded by another.
+func (s *LearningStore) Supersede(ctx context.Context, oldID, newID string) error {
+	query := `UPDATE learnings SET resolution = 'superseded', superseded_by = $2 WHERE learning_id = $1`
+	tag, err := s.pool.Exec(ctx, query, oldID, newID)
+	if err != nil {
+		return fmt.Errorf("supersede learning %s -> %s: %w", oldID, newID, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("learning %s: %w", oldID, models.ErrNotFound)
+	}
+	return nil
+}
+
+// UpdateScore updates the score of a learning record.
+func (s *LearningStore) UpdateScore(ctx context.Context, learningID string, score float64) error {
+	query := `UPDATE learnings SET score = $2 WHERE learning_id = $1`
+	tag, err := s.pool.Exec(ctx, query, learningID, score)
+	if err != nil {
+		return fmt.Errorf("update score %s: %w", learningID, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("learning %s: %w", learningID, models.ErrNotFound)
+	}
+	return nil
+}
+
 // scanLearnings scans rows into LearningRecord slices.
 func scanLearnings(rows pgx.Rows) ([]models.LearningRecord, error) {
 	var records []models.LearningRecord
@@ -304,7 +330,10 @@ func scanLearnings(rows pgx.Rows) ([]models.LearningRecord, error) {
 		}
 		records = append(records, rec)
 	}
-	return records, fmt.Errorf("scan learnings: %w", rows.Err())
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("scan learnings: %w", err)
+	}
+	return records, nil
 }
 
 // nullIfEmpty returns nil for empty strings (used for nullable PG columns).

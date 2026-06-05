@@ -62,7 +62,7 @@ func main() {
 	// Init services (business logic)
 	registrySvc := service.NewRegistry(agentStore)
 	syncerSvc := service.NewSyncer(learningStore, agentStore, protocolStore)
-	learningSvc := service.NewLearning(learningStore)
+	learningSvc := service.NewLearning(learningStore, protocolStore)
 
 	// Init MCP server
 	srv := server.New(&cfg, registrySvc, syncerSvc, learningSvc)

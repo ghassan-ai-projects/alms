@@ -262,3 +262,14 @@ func (s *AgentStore) List(ctx context.Context, filter map[string]string, limit, 
 	}
 	return specs, nil
 }
+
+// Count returns the total number of registered agents.
+func (s *AgentStore) Count(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM agents`
+	var count int
+	err := s.pool.QueryRow(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count agents: %w", err)
+	}
+	return count, nil
+}

@@ -88,3 +88,12 @@ func (r *Registry) Heartbeat(ctx context.Context, agentID string) (time.Time, er
 	}
 	return ts, nil
 }
+
+// AgentCount returns the total number of registered agents.
+func (r *Registry) AgentCount(ctx context.Context) (int, error) {
+	count, err := r.store.Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("agent count: %w", err)
+	}
+	return count, nil
+}

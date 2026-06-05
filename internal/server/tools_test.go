@@ -24,12 +24,15 @@ func helperServer(t *testing.T) (*server.MCPServer, *service.Registry, *service.
 
 	registry := service.NewRegistry(aStore)
 	syncer := service.NewSyncer(lStore, aStore, pStore)
-	learningSvc := service.NewLearning(lStore)
+	learningSvc := service.NewLearning(lStore, pStore)
 
-	// Register tools directly on the MCP server
+	// Register all tools directly on the MCP server
 	registerAgentTools(mcpSrv, registry)
 	registerLearningTools(mcpSrv, syncer)
+	registerLearningStoreTools(mcpSrv, learningSvc)
 	registerProtocolTools(mcpSrv, syncer)
+	registerProtocolStoreTools(mcpSrv, learningSvc)
+	registerHealthTools(mcpSrv, registry)
 
 	return mcpSrv, registry, syncer, learningSvc
 }
@@ -203,5 +206,207 @@ func TestAgentRegisterTool(t *testing.T) {
 		})
 
 		requireToolResultError(t, resp)
+	})
+}
+
+func TestLearningStoreTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("store learning succeeds", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.store", map[string]any{
+			"agent_id": "agent-1",
+			"title":    "Test Learning",
+			"body":     "Test body",
+			"type":     "config",
+			"tags":     []any{"database"},
+		})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result["status"] != "created" {
+			t.Errorf("status = %q, want %q", result["status"], "created")
+		}
+		if id, ok := result["learning_id"].(string); !ok || id == "" {
+			t.Error("expected non-empty learning_id")
+		}
+	})
+
+	t.Run("store without agent_id returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.store", map[string]any{
+			"title": "Test",
+			"type":  "config",
+		})
+
+		requireToolResultError(t, resp)
+	})
+
+	t.Run("store with invalid type returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.store", map[string]any{
+			"agent_id": "agent-1",
+			"title":    "Test",
+			"type":     "invalid_type",
+		})
+
+		requireToolResultError(t, resp)
+	})
+}
+
+func TestLearningSearchTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("search returns results", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		// Pre-populate a learning via the service
+		_, _ = learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Search Test",
+			Body:  "This should be searchable",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query": "Search",
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected at least 1 result")
+		}
+	})
+
+	t.Run("search without query returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query": "",
+		})
+
+		requireToolResultError(t, resp)
+	})
+}
+
+func TestLearningDeleteTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete existing learning", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "To Delete",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.delete", map[string]any{
+			"learning_id": id,
+		})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result["status"] != "soft_deleted" {
+			t.Errorf("status = %q, want %q", result["status"], "soft_deleted")
+		}
+	})
+
+	t.Run("delete without id returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.delete", map[string]any{
+			"learning_id": "",
+		})
+
+		requireToolResultError(t, resp)
+	})
+}
+
+func TestProtocolPushTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("push protocol succeeds", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "protocol.push", map[string]any{
+			"title":       "New Protocol",
+			"body":        "Protocol body",
+			"target_tags": []any{"agent-1"},
+		})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result["status"] != "created" {
+			t.Errorf("status = %q, want %q", result["status"], "created")
+		}
+	})
+
+	t.Run("push without title returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "protocol.push", map[string]any{
+			"title": "",
+		})
+
+		requireToolResultError(t, resp)
+	})
+}
+
+func TestProtocolListTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("list protocols", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		_, _ = learningSvc.ProtocolPush(ctx, models.ProtocolRecord{Title: "Proto 1"})
+		_, _ = learningSvc.ProtocolPush(ctx, models.ProtocolRecord{Title: "Proto 2"})
+
+		resp := callTool(t, srv, "protocol.list", map[string]any{})
+
+		text := getToolResultText(t, resp)
+		var results []models.ProtocolRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) != 2 {
+			t.Errorf("got %d protocols, want 2", len(results))
+		}
+	})
+}
+
+func TestHealthCheckTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("health check returns ok", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "health.check", map[string]any{})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result["status"] != "ok" {
+			t.Errorf("status = %q, want %q", result["status"], "ok")
+		}
 	})
 }

@@ -141,6 +141,16 @@ func (m *AgentStore) List(ctx context.Context, filter map[string]string, limit, 
 	return filtered, nil
 }
 
+// Count returns the total number of registered agents.
+func (m *AgentStore) Count(ctx context.Context) (int, error) {
+	if err := m.getErr(); err != nil {
+		return 0, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.agents), nil
+}
+
 // GetAll returns a copy of all stored agents (for test assertions).
 func (m *AgentStore) GetAll() map[string]models.AgentSpec {
 	m.mu.Lock()
@@ -193,6 +203,9 @@ func (m *LearningStore) Create(ctx context.Context, record models.LearningRecord
 	id := fmt.Sprintf("lrn-%d", len(m.records)+1)
 	cp := record
 	cp.LearningID = id
+	if cp.CreatedAt.IsZero() {
+		cp.CreatedAt = time.Now()
+	}
 	m.records[id] = &cp
 	return id, nil
 }
@@ -371,6 +384,47 @@ func (m *LearningStore) GetAcks(agentID string) []string {
 	return result
 }
 
+// Supersede updates the resolution of a learning record and sets superseded_by.
+func (m *LearningStore) Supersede(ctx context.Context, oldID, newID string) error {
+	if err := m.getErr(); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	rec, ok := m.records[oldID]
+	if !ok {
+		return fmt.Errorf("learning %s: %w", oldID, models.ErrNotFound)
+	}
+	rec.Resolution = models.ResolutionSuperseded
+	rec.SupersededBy = newID
+	return nil
+}
+
+// UpdateScore updates the score of a learning record.
+func (m *LearningStore) UpdateScore(ctx context.Context, learningID string, score float64) error {
+	if err := m.getErr(); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	rec, ok := m.records[learningID]
+	if !ok {
+		return fmt.Errorf("learning %s: %w", learningID, models.ErrNotFound)
+	}
+	rec.Score = score
+	return nil
+}
+
+// UpdateLearningRecord overwrites the stored learning record with the given one.
+// Used in tests to modify fields like CreatedAt that aren't exposed via the interface.
+func (m *LearningStore) UpdateLearningRecord(id string, record models.LearningRecord) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := record
+	cp.LearningID = id
+	m.records[id] = &cp
+}
+
 // GetAgentCursor returns the agent's sync cursor (for test assertions).
 func (m *LearningStore) GetAgentCursor(agentID string) time.Time {
 	m.mu.Lock()
@@ -415,6 +469,9 @@ func (m *ProtocolStore) Create(ctx context.Context, record models.ProtocolRecord
 	id := fmt.Sprintf("proto-%d", len(m.protocols)+1)
 	cp := record
 	cp.ProtocolID = id
+	if cp.CreatedAt.IsZero() {
+		cp.CreatedAt = time.Now()
+	}
 	m.protocols[id] = &cp
 	return id, nil
 }
