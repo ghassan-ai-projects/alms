@@ -23,7 +23,7 @@ lint:
 	golangci-lint run ./... --timeout=3m
 
 lint-ci:
-	golangci-lint run ./... --timeout=3m --out-format=github-actions
+	golangci-lint run ./... --timeout=3m 
 
 test:
 	go test -race -count=1 -shuffle=on -coverprofile=coverage.out ./... && \

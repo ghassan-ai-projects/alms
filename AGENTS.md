@@ -26,6 +26,19 @@ Written in Go 1.22+. PostgreSQL for persistence. Single binary, systemd deploy.
 - `make deadcode` — detect unused functions
 - Pre-commit hooks: whitespace, EOF, YAML, gofmt, govet, goimports, golangci-lint-fast
 
+## 🚨 Test Mandate (Hard Requirement)
+Every code-writing task MUST produce `*_test.go` files alongside production code. This is not optional.
+
+**Requirements:**
+- Every package modified must have corresponding test files committed in the same push
+- Table-driven tests with `t.Run()` for all new functions
+- Target minimum coverage by layer: service 80%+, store 60%+, server 40%+, models 90%+
+- `make test` must pass before push
+- `go test -race -count=1 -coverprofile=coverage.out ./...` must show >0% coverage for all modified packages
+- No commit is valid without tests — verify with `make ci-check` before push
+
+**Rejection process:** If `make test` fails or coverage is 0%, the work is rejected and must be fixed before merging.
+
 ## Rules
 - No mega-constructors — use functional options or config structs
 - No package-per-feature — one package per layer (service/, store/, server/)
@@ -35,8 +48,10 @@ Written in Go 1.22+. PostgreSQL for persistence. Single binary, systemd deploy.
 - No `database/sql` — use pgx native pool
 - No `context.Background()` in business logic — only in main.go
 - No `init()` outside config package
-- Table-driven tests with `t.Run()`
-- `t.Helper()` in all test helpers
+- Table-driven tests with `t.Run()` for every function
+- Every file you create: write a `*_test.go` alongside it. No exceptions.
+- `t.Helper()` in all test helper functions
+- `make test` must pass before any commit is valid
 
 ## Migrations
 - Tool: `golang-migrate/migrate` CLI
