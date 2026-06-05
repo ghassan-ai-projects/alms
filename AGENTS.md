@@ -24,10 +24,10 @@ Written in Go 1.22+. PostgreSQL for persistence. Single binary, systemd deploy.
 - `make test` — go test with race detector + shuffle + coverage
 - `make ci-check` — tidy → build → vet → lint → test
 - `make deadcode` — detect unused functions
-- Pre-commit hooks: whitespace, EOF, YAML, gofmt, govet, goimports, golangci-lint-fast
+- **Pre-commit hook** — native `.git/hooks/pre-commit`. Auto-fixes lint (`--fix`), blocks on missing `*_test.go`, build errors, vet failures, un-fixable lint.
 
 ## 🚨 Test Mandate (Hard Requirement)
-Every code-writing task MUST produce `*_test.go` files alongside production code. This is not optional.
+Every code-writing task MUST produce `*_test.go` files alongside production code. This is enforced by the Git pre-commit hook and is not optional.
 
 **Requirements:**
 - Every package modified must have corresponding test files committed in the same push
@@ -35,9 +35,11 @@ Every code-writing task MUST produce `*_test.go` files alongside production code
 - Target minimum coverage by layer: service 80%+, store 60%+, server 40%+, models 90%+
 - `make test` must pass before push
 - `go test -race -count=1 -coverprofile=coverage.out ./...` must show >0% coverage for all modified packages
-- No commit is valid without tests — verify with `make ci-check` before push
+- No commit is valid without tests — the pre-commit hook rejects it
 
 **Rejection process:** If `make test` fails or coverage is 0%, the work is rejected and must be fixed before merging.
+
+**Auto-fix workflow:** The pre-commit hook runs `golangci-lint --fix` which auto-formats code and fixes imports. Lint issues it can't fix (errcheck, gosec, wrapcheck) must be manually fixed. Run `golangci-lint run ./...` locally to see all issues before committing.
 
 ## Rules
 - No mega-constructors — use functional options or config structs
