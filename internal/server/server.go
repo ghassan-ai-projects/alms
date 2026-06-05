@@ -45,19 +45,19 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	// Wrap in StreamableHTTP server
 	streamableHTTPServer := server.NewStreamableHTTPServer(s.mcp)
 
-	// Build middleware chain
+	// Build middleware chain by wrapping the handler (not the mux)
 	var handler http.Handler = streamableHTTPServer
+
+	// Add auth middleware if token is configured
+	if s.cfg.Auth.Token != "" {
+		handler = AuthMiddleware(s.cfg.Auth.Token)(handler)
+	}
 
 	// Register dashboard handler at /dashboard
 	dashboardHandler := DashboardHandler()
 	mux := http.NewServeMux()
 	mux.Handle("/dashboard", dashboardHandler)
 	mux.Handle("/", handler)
-
-	// Add auth middleware if token is configured
-	if s.cfg.Auth.Token != "" {
-		mux.Handle("/", AuthMiddleware(s.cfg.Auth.Token)(mux))
-	}
 
 	s.httpSrv = &http.Server{
 		Addr:         s.cfg.Server.Addr(),

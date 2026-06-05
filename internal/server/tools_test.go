@@ -432,8 +432,15 @@ func TestProtocolListTool(t *testing.T) {
 func TestHealthCheckTool(t *testing.T) {
 	t.Parallel()
 
-	t.Run("health check returns ok", func(t *testing.T) {
-		srv, _, _, _ := helperServer(t)
+	t.Run("health check returns ok with agent count", func(t *testing.T) {
+		srv, registry, _, _ := helperServer(t)
+		ctx := context.Background()
+
+		// Register an agent so we have a non-zero count
+		_ = registry.Register(ctx, models.AgentSpec{
+			AgentID:   "health-check-agent",
+			AgentType: models.AgentTypeSystemd,
+		})
 
 		resp := callTool(t, srv, "health.check", map[string]any{})
 
@@ -444,6 +451,37 @@ func TestHealthCheckTool(t *testing.T) {
 		}
 		if result["status"] != "ok" {
 			t.Errorf("status = %q, want %q", result["status"], "ok")
+		}
+		// Verify agent_count is present and numeric
+		count, ok := result["agent_count"].(float64)
+		if !ok {
+			t.Fatal("agent_count field missing or not numeric")
+		}
+		if count < 1 {
+			t.Errorf("agent_count = %v, want >= 1", count)
+		}
+		if _, ok := result["version"]; !ok {
+			t.Fatal("version field missing")
+		}
+	})
+
+	t.Run("health check returns zero agents when none registered", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "health.check", map[string]any{})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		count, ok := result["agent_count"].(float64)
+		if !ok {
+			t.Fatal("agent_count field missing or not numeric")
+		}
+		// With no agents registered, agent_count should be 0
+		if count != 0 {
+			t.Errorf("agent_count = %v, want 0", count)
 		}
 	})
 }

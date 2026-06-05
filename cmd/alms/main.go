@@ -64,6 +64,11 @@ func main() {
 	syncerSvc := service.NewSyncer(learningStore, agentStore, protocolStore)
 	learningSvc := service.NewLearning(learningStore, protocolStore)
 
+	// Init GC service for background garbage collection
+	gcSvc := service.NewGC(learningStore, service.DefaultGCConfig())
+	gcSvc.Start(ctx)
+	defer gcSvc.Stop()
+
 	// Init MCP server
 	srv := server.New(&cfg, registrySvc, syncerSvc, learningSvc)
 

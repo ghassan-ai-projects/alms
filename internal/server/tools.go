@@ -246,15 +246,16 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 			SrcAgentID:  agentID,
 		}
 
-		// If supersedes is provided, validate it's a valid UUID
-		id, err := learning.Store(ctx, rec, supersedes)
+		// Use dedup-aware store to check for exact and near duplicates
+		id, dedupResult, err := learning.StoreLearningWithDedup(ctx, rec, supersedes)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		return marshalResult(map[string]any{
-			"learning_id": id,
-			"status":      "created",
+			"learning_id":  id,
+			"status":       "created",
+			"is_duplicate": dedupResult.IsExactDup || dedupResult.IsNearDup,
 		})
 	})
 
@@ -427,10 +428,21 @@ func registerHealthTools(mcpSrv *server.MCPServer, registry *service.Registry) {
 	mcpSrv.AddTool(mcp.NewTool("health.check",
 		mcp.WithDescription("Check server health: PG ping + agent count"),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// We use the Registry to get agent count via its store
+		// Use registry to get actual agent count; short timeout for safety
+		hcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+
+		count, countErr := registry.AgentCount(hcCtx)
+
+		status := "ok"
+		if countErr != nil {
+			status = "degraded"
+		}
+
 		result := map[string]any{
-			"status":  "ok",
-			"version": "0.1.0",
+			"status":      status,
+			"agent_count": count,
+			"version":     "0.1.0",
 		}
 
 		return marshalResult(result)
