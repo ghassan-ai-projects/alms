@@ -336,6 +336,43 @@ func TestLearningDeleteTool(t *testing.T) {
 	})
 }
 
+func TestLearningGetTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get existing learning", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "To Get",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.get", map[string]any{
+			"learning_id": id,
+		})
+
+		text := getToolResultText(t, resp)
+		var result models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result.Title != "To Get" {
+			t.Errorf("Title = %q, want %q", result.Title, "To Get")
+		}
+	})
+
+	t.Run("get without id returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.get", map[string]any{
+			"learning_id": "",
+		})
+
+		requireToolResultError(t, resp)
+	})
+}
+
 func TestProtocolPushTool(t *testing.T) {
 	t.Parallel()
 

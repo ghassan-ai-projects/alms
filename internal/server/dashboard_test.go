@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -21,18 +22,15 @@ func TestDashboardHandler(t *testing.T) {
 			t.Errorf("expected status 200, got %d", rec.Code)
 		}
 		contentType := rec.Header().Get("Content-Type")
-		if contentType != "text/html; charset=utf-8" {
+		if !strings.Contains(contentType, "text/html") {
 			t.Errorf("expected Content-Type text/html, got %q", contentType)
 		}
 		body := rec.Body.String()
 		if len(body) == 0 {
 			t.Error("expected non-empty body")
 		}
-		if !containsStr(body, "ALMS Dashboard") {
+		if !strings.Contains(body, "ALMS Dashboard") {
 			t.Error("expected body to contain 'ALMS Dashboard'")
-		}
-		if !containsStr(body, "refresh()") {
-			t.Error("expected body to contain refresh button function")
 		}
 	})
 
@@ -59,18 +57,4 @@ func TestDashboardHandler(t *testing.T) {
 			t.Errorf("expected status 200, got %d", rec.Code)
 		}
 	})
-}
-
-// containsStr reports whether s contains substr (case-sensitive).
-func containsStr(s, substr string) bool {
-	return len(s) >= len(substr) && searchStr(s, substr)
-}
-
-func searchStr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/server"
@@ -12,8 +13,7 @@ import (
 	"github.com/ghassan/alms/internal/service/storemock"
 )
 
-// helperServerWithResources creates a test server with all resources registered
-// using the real resource registration code.
+// helperServerWithResources creates a test server with all resources registered.
 func helperServerWithResources(t *testing.T) (*server.MCPServer, *service.Registry, *service.Learning) {
 	t.Helper()
 
@@ -26,7 +26,7 @@ func helperServerWithResources(t *testing.T) (*server.MCPServer, *service.Regist
 	syncer := service.NewSyncer(lStore, aStore, pStore)
 	learningSvc := service.NewLearning(lStore, pStore)
 
-	// Register all tools (needed for some resources)
+	// Register all tools
 	registerAgentTools(mcpSrv, registry)
 	registerLearningTools(mcpSrv, syncer)
 	registerLearningStoreTools(mcpSrv, learningSvc)
@@ -41,8 +41,7 @@ func helperServerWithResources(t *testing.T) (*server.MCPServer, *service.Regist
 	return mcpSrv, registry, learningSvc
 }
 
-// readResource sends a resources/read request to the MCP server and returns
-// the raw response text (or fails the test).
+// readResource sends a resources/read request and extracts the text content.
 func readResource(t *testing.T, srv *server.MCPServer, uri string) string {
 	t.Helper()
 
@@ -61,7 +60,7 @@ func readResource(t *testing.T, srv *server.MCPServer, uri string) string {
 
 	resp := srv.HandleMessage(context.Background(), raw)
 
-	// The response is a JSONRPCResponse — marshal it back to JSON and extract contents
+	// Marshal the full response back to JSON, then extract nested content
 	respRaw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("failed to marshal response: %v", err)
@@ -69,7 +68,7 @@ func readResource(t *testing.T, srv *server.MCPServer, uri string) string {
 
 	var respJSON map[string]any
 	if err := json.Unmarshal(respRaw, &respJSON); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
+		t.Fatalf("failed to unmarshal response: %v (raw: %s)", err, string(respRaw))
 	}
 
 	// Check for error
@@ -142,7 +141,7 @@ func TestResources(t *testing.T) {
 		}
 	})
 
-	t.Run("alms://tools returns json", func(t *testing.T) {
+	t.Run("alms://tools returns 16 tools", func(t *testing.T) {
 		srv, _, _ := helperServerWithResources(t)
 
 		text := readResource(t, srv, "alms://tools")
@@ -154,7 +153,6 @@ func TestResources(t *testing.T) {
 		if len(tools) == 0 {
 			t.Error("expected at least 1 tool")
 		}
-		// Verify it has all 16 Phase 2 tools (includes learning.get)
 		if len(tools) != 16 {
 			t.Errorf("expected 16 tools, got %d", len(tools))
 		}
@@ -204,3 +202,6 @@ func TestResources(t *testing.T) {
 		}
 	})
 }
+
+// Ensure fmt is imported.
+var _ = fmt.Sprintf

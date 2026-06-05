@@ -1,0 +1,16 @@
+// MCP server config patch for OpenClaw
+// Apply with: openclaw config patch --file this-file.json5
+{
+  mcp: {
+    servers: {
+      alms: {
+        url: "http://192.168.2.112:8001/mcp",
+        transport: "streamable-http",
+        headers: {
+          "X-ALMS-TOKEN": ""
+        },
+        enabled: true
+      }
+    }
+  }
+}

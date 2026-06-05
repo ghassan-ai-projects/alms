@@ -1,0 +1,6 @@
+# ALMS daily database backup
+# Installed to /etc/cron.d/alms-backup (chmod 644, root:root)
+# Uses ALMS_PG_PASSWORD env var from /opt/alms/.env-backup
+ALMS_PG_PASSWORD=alms
+
+0 3 * * * ghassan /opt/alms/backup/alms-backup.sh >> /opt/alms/backup/backup.log 2>&1
