@@ -1,0 +1,9 @@
+server:
+  host: "0.0.0.0"
+  port: 8001
+
+database:
+  dsn: "postgres://alms:alms@localhost:5432/alms_db?sslmode=disable"
+
+auth:
+  token: ""

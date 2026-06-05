@@ -1,0 +1,18 @@
+[Unit]
+Description=ALMS Agent Control Plane
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=ghassan
+WorkingDirectory=/opt/alms
+ExecStart=/opt/alms/alms --config /opt/alms/alms.yaml
+Restart=on-failure
+RestartSec=5
+MemoryMax=512M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

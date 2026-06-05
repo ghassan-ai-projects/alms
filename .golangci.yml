@@ -1,0 +1,32 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - misspell
+    - noctx
+    - thelper
+    - musttag
+    - wrapcheck
+    - errorlint
+    - nakedret
+  disable:
+    - prealloc
+    - unconvert
+    - wastedassign
+    - paralleltest
+    - revive
+  settings:
+    gosec:
+      excludes:
+        - G101
+        - G304
+    wrapcheck:
+      ignoreSigs:
+        - fmt.Errorf
+        - errors.New
