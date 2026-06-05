@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -266,7 +265,10 @@ func (s *LearningStore) ExpectedSyncIDs(ctx context.Context, agentID string, sin
 		}
 		ids = append(ids, id)
 	}
-	return ids, fmt.Errorf("expected sync IDs: %w", rows.Err())
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("expected sync IDs: %w", err)
+	}
+	return ids, nil
 }
 
 // scanLearnings scans rows into LearningRecord slices.
@@ -315,4 +317,3 @@ func nullIfEmpty(s string) any {
 
 // Ensure *pgx.Rows implements the scanLearnings scanner interface.
 // keep imports
-var _ = strings.TrimSpace

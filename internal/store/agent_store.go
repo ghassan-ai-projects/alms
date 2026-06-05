@@ -257,5 +257,8 @@ func (s *AgentStore) List(ctx context.Context, filter map[string]string, limit, 
 		specs = append(specs, spec)
 	}
 
-	return specs, fmt.Errorf("list agents: %w", rows.Err())
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list agents: %w", err)
+	}
+	return specs, nil
 }

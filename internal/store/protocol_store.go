@@ -171,8 +171,10 @@ func scanProtocols(rows pgx.Rows) ([]models.ProtocolRecord, error) {
 		}
 		records = append(records, rec)
 	}
-	return records, fmt.Errorf("scan protocols: %w", rows.Err())
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("scan protocols: %w", err)
+	}
+	return records, nil
 }
 
 // Keep import
-var _ = time.Now
