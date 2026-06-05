@@ -1,4 +1,4 @@
-.PHONY: all build vet lint test-short test ci-check tidy deadcode vulncheck clean fmt
+.PHONY: all build vet lint test-short test ci-check tidy deadcode vulncheck clean fmt test-integration load-test acceptance deploy-linux
 
 BINARY    := bin/alms
 VERSION   := $(shell git describe --tags 2>/dev/null || echo dev)
@@ -41,6 +41,31 @@ deadcode:
 vulncheck:
 	govulncheck ./...
 
+# Integration tests (require ALMS_PG_DSN).
+# Usage: ALMS_PG_DSN=... make test-integration
+test-integration:
+	go test -tags=integration -race -count=1 -v ./internal/integration/...
+
+# Run all tests including integration.
+# Usage: ALMS_PG_DSN=... make test-all
+test-all:
+	go test -race -count=1 -shuffle=on ./...
+	go test -tags=integration -race -count=1 ./internal/integration/...
+
+# Load test (requires ALMS_PG_DSN + docker-compose).
+load-test:
+	bash test/load-test.sh
+
+# Phase 4 acceptance test.
+acceptance:
+	bash test/phase-4-acceptance.sh
+
+# Cross-compile linux binary (verifies deploy.sh compatibility).
+deploy-linux:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o bin/alms-linux ./cmd/alms/
+	@echo "✅ Linux binary: bin/alms-linux ($$(ls -lh bin/alms-linux | awk '{print $$5}'))"
+
 clean:
 	rm -f coverage.out
 	rm -rf bin/
+

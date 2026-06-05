@@ -352,6 +352,63 @@ func TestRegistryHeartbeat(t *testing.T) {
 			t.Errorf("AgentCount() = %d, want 2", count)
 		}
 	})
+
+	t.Run("list with store error returns error", func(t *testing.T) {
+		store := storemock.NewAgentStore()
+		reg := NewRegistry(store)
+
+		store.SetError(assertionError("store error"))
+		_, err := reg.List(ctx, nil, 10, 0)
+		if err == nil {
+			t.Error("List() expected error from store, got nil")
+		}
+	})
+
+	t.Run("agent count with store error returns error", func(t *testing.T) {
+		store := storemock.NewAgentStore()
+		reg := NewRegistry(store)
+
+		store.SetError(assertionError("store error"))
+		_, err := reg.AgentCount(ctx)
+		if err == nil {
+			t.Error("AgentCount() expected error from store, got nil")
+		}
+	})
+
+	t.Run("register with store error returns error", func(t *testing.T) {
+		store := storemock.NewAgentStore()
+		reg := NewRegistry(store)
+
+		store.SetError(assertionError("store error"))
+		err := reg.Register(ctx, models.AgentSpec{
+			AgentID:   "agent-err",
+			AgentType: models.AgentTypeSystemd,
+		})
+		if err == nil {
+			t.Error("Register() expected error from store, got nil")
+		}
+	})
+
+	t.Run("update with store error returns error", func(t *testing.T) {
+		store := storemock.NewAgentStore()
+		reg := NewRegistry(store)
+		ctx := context.Background()
+
+		// Create first
+		_ = reg.Register(ctx, models.AgentSpec{
+			AgentID:   "agent-upd",
+			AgentType: models.AgentTypeSystemd,
+		})
+
+		store.SetError(assertionError("store error"))
+		err := reg.Update(ctx, "agent-upd", models.AgentSpec{
+			AgentID:   "agent-upd",
+			AgentType: models.AgentTypeMCPClient,
+		})
+		if err == nil {
+			t.Error("Update() expected error from store, got nil")
+		}
+	})
 }
 
 

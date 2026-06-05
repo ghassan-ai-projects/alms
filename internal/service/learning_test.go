@@ -376,6 +376,54 @@ func TestProtocolList(t *testing.T) {
 	})
 }
 
+func TestStoreLearningWithDedupExactDupErrorPath(t *testing.T) {
+	t.Parallel()
+	_, lStore, _ := helperLearning(t)
+	learning := NewLearning(lStore, storemock.NewProtocolStore())
+	ctx := context.Background()
+
+	// Set store error to trigger exact dup check failure
+	lStore.SetError(assertionError("dedup error"))
+	_, _, err := learning.StoreLearningWithDedup(ctx, models.LearningRecord{
+		Title: "Test",
+		Type:  models.LearningTypePattern,
+	}, "")
+	if err == nil {
+		t.Error("StoreLearningWithDedup() expected error from exact dup, got nil")
+	}
+}
+
+func TestStoreLearningWithDedupStoreErrorPath(t *testing.T) {
+	t.Parallel()
+	_, lStore, _ := helperLearning(t)
+	ctx := context.Background()
+
+	// Set error before call — will fail on exact dup check
+	lStore.SetError(assertionError("store error"))
+	_, _, err := NewLearning(lStore, storemock.NewProtocolStore()).StoreLearningWithDedup(ctx, models.LearningRecord{
+		Title: "Test",
+		Type:  models.LearningTypePattern,
+	}, "")
+	if err == nil {
+		t.Error("StoreLearningWithDedup() expected error, got nil")
+	}
+}
+
+func TestStoreValidationError(t *testing.T) {
+	t.Parallel()
+	_, lStore, _ := helperLearning(t)
+	ctx := context.Background()
+
+	// Empty title should fail validation
+	_, err := NewLearning(lStore, storemock.NewProtocolStore()).Store(ctx, models.LearningRecord{
+		Title: "",
+		Type:  models.LearningTypePattern,
+	}, "")
+	if err == nil {
+		t.Error("Store() expected validation error for empty title, got nil")
+	}
+}
+
 // assertionError is a simple error type for testing.
 type assertionError string
 

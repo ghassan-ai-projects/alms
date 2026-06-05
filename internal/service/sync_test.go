@@ -341,4 +341,88 @@ func TestSyncerPullProtocols(t *testing.T) {
 			t.Error("PullProtocolsSince() expected error for non-existent agent")
 		}
 	})
+
+	t.Run("sync store error returns error", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		lStore.SetError(assertionError("store error"))
+		_, err := syncer.Sync(ctx, "agent-err", time.Now(), "", nil)
+		if err == nil {
+			t.Error("Sync() expected error from store, got nil")
+		}
+	})
+
+	t.Run("sync ack store error returns error", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_ = aStore.Create(ctx, models.AgentSpec{
+			AgentID:   "agent-ackerr",
+			AgentType: models.AgentTypeSystemd,
+		})
+		l1, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "L1", Type: models.LearningTypePattern, CreatedAt: time.Now(),
+		})
+
+		// Set error on lStore (after agent store Get succeeds)
+		lStore.SetError(assertionError("store error"))
+		err := syncer.SyncAck(ctx, "agent-ackerr", []string{l1})
+		if err == nil {
+			t.Error("SyncAck() expected error from store, got nil")
+		}
+	})
+
+	t.Run("pull protocols store error returns error", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_ = aStore.Create(ctx, models.AgentSpec{
+			AgentID:   "agent-protoerr",
+			AgentType: models.AgentTypeSystemd,
+			Metadata:  models.AgentMetadata{Tags: []string{"test"}},
+		})
+
+		pStore.SetError(assertionError("store error"))
+		_, err := syncer.PullProtocols(ctx, "agent-protoerr")
+		if err == nil {
+			t.Error("PullProtocols() expected error from store, got nil")
+		}
+	})
+
+	t.Run("pull protocols non-existent agent returns error", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_, err := syncer.PullProtocols(ctx, "nonexistent")
+		if err == nil {
+			t.Error("PullProtocols() expected error for non-existent agent")
+		}
+	})
+
+	t.Run("sync ack no new learnings is no-op", func(t *testing.T) {
+		lStore := storemock.NewLearningStore()
+		aStore := storemock.NewAgentStore()
+		pStore := storemock.NewProtocolStore()
+		syncer := NewSyncer(lStore, aStore, pStore)
+
+		_ = aStore.Create(ctx, models.AgentSpec{
+			AgentID:   "agent-no-new",
+			AgentType: models.AgentTypeSystemd,
+		})
+
+		// No learnings posted yet — ack should be a no-op
+		err := syncer.SyncAck(ctx, "agent-no-new", []string{})
+		if err != nil {
+			t.Fatalf("SyncAck() expected no error for empty ack: %v", err)
+		}
+	})
 }
