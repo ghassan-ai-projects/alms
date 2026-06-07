@@ -3,6 +3,7 @@ package storemock
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -398,6 +399,26 @@ func (m *LearningStore) Supersede(ctx context.Context, oldID, newID string) erro
 	rec.Resolution = models.ResolutionSuperseded
 	rec.SupersededBy = newID
 	return nil
+}
+
+// UpdateEnrichment updates the enrichment_metadata for a learning record.
+func (m *LearningStore) UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
+	if err := m.getErr(); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	rec, ok := m.records[learningID]
+	if !ok {
+		return fmt.Errorf("learning %s: %w", learningID, models.ErrNotFound)
+	}
+	rec.EnrichmentMetadata = enrichmentJSON
+	return nil
+}
+
+// SearchWithStatus searches with additional filter params for status and includeRejected.
+func (m *LearningStore) SearchWithStatus(ctx context.Context, query string, ltype string, tags []string, limit int, status string, includeRejected bool) ([]models.LearningRecord, error) {
+	return m.Search(ctx, query, ltype, tags, limit)
 }
 
 // UpdateScore updates the score of a learning record.

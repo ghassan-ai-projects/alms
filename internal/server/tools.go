@@ -21,6 +21,7 @@ func (s *Server) registerTools(registry *service.Registry, syncer *service.Synce
 	registerProtocolTools(s.mcp, syncer)
 	registerProtocolStoreTools(s.mcp, learning)
 	registerHealthTools(s.mcp, registry)
+	registerPhase2Tools(s.mcp, learning)
 }
 
 func registerAgentTools(mcpSrv *server.MCPServer, registry *service.Registry) {
@@ -252,10 +253,20 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
+		// Fetch stored record to get enrichment metadata
+		stored, _ := learning.Get(ctx, id)
+		enrichment := json.RawMessage(
+			[]byte(`{"status":"pending","quality":{"score":3.0}}`),
+		)
+		if len(stored.EnrichmentMetadata) > 0 {
+			enrichment = stored.EnrichmentMetadata
+		}
+
 		return marshalResult(map[string]any{
 			"learning_id":  id,
 			"status":       "created",
 			"is_duplicate": dedupResult.IsExactDup || dedupResult.IsNearDup,
+			"enrichment":   enrichment,
 		})
 	})
 
@@ -268,23 +279,39 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 			mcp.Items(map[string]any{"type": "string"}),
 		),
 		mcp.WithNumber("limit", mcp.Description("Max results (default 20)")),
+		mcp.WithBoolean("include_enrichment", mcp.Description("Include enrichment metadata in results (default false)")),
+		mcp.WithString("status", mcp.Description("Filter by enrichment status (pending, accepted, rejected, error)")),
+		mcp.WithBoolean("include_rejected", mcp.Description("Include rejected learnings in results (default false)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		query := req.GetString("query", "")
 		ltype := req.GetString("type", "")
 		tags := req.GetStringSlice("tags", nil)
 		limit := req.GetInt("limit", 20)
+		includeEnrichment := req.GetBool("include_enrichment", false)
+		status := req.GetString("status", "")
+		includeRejected := req.GetBool("include_rejected", false)
 
 		if query == "" {
 			return mcp.NewToolResultError("query is required"), nil
 		}
 
-		records, err := learning.Search(ctx, query, ltype, tags, limit)
+		records, err := learning.SearchAdvanced(ctx, query, ltype, tags, limit, status, includeRejected)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		if records == nil {
 			records = []models.LearningRecord{}
+		}
+
+		// Strip enrichment from results unless requested
+		if !includeEnrichment {
+			filtered := make([]models.LearningRecord, len(records))
+			for i, r := range records {
+				r.EnrichmentMetadata = nil
+				filtered[i] = r
+			}
+			records = filtered
 		}
 
 		return marshalResult(records)
@@ -446,6 +473,38 @@ func registerHealthTools(mcpSrv *server.MCPServer, registry *service.Registry) {
 		}
 
 		return marshalResult(result)
+	})
+}
+
+// registerPhase2Tools registers Phase 2 enrichment and scoring tools.
+func registerPhase2Tools(mcpSrv *server.MCPServer, learning *service.Learning) {
+	mcpSrv.AddTool(mcp.NewTool("learning.update_enrichment",
+		mcp.WithDescription("Update enrichment metadata for a learning (used by OpenClaw async scoring)"),
+		mcp.WithString("learning_id", mcp.Required(), mcp.Description("Learning ID to update")),
+		mcp.WithObject("enrichment_patch",
+			mcp.Required(),
+			mcp.Description("JSON object to merge into enrichment_metadata"),
+		),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		learningID := req.GetString("learning_id", "")
+		enrichmentPatchRaw, ok := req.GetArguments()["enrichment_patch"]
+		if !ok {
+			return mcp.NewToolResultError("enrichment_patch is required"), nil
+		}
+
+		enrichmentJSON, err := json.Marshal(enrichmentPatchRaw)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal enrichment patch: %v", err)), nil
+		}
+
+		if err := learning.UpdateEnrichment(ctx, learningID, enrichmentJSON); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		return marshalResult(map[string]any{
+			"status":      "updated",
+			"learning_id": learningID,
+		})
 	})
 }
 

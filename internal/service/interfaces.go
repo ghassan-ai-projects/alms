@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/ghassan/alms/internal/models"
@@ -31,6 +32,8 @@ type LearningStore interface {
 	ExpectedSyncIDs(ctx context.Context, agentID string, since time.Time) ([]string, error)
 	Supersede(ctx context.Context, oldID, newID string) error
 	UpdateScore(ctx context.Context, learningID string, score float64) error
+	UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error
+	SearchWithStatus(ctx context.Context, query string, ltype string, tags []string, limit int, status string, includeRejected bool) ([]models.LearningRecord, error)
 }
 
 // ProtocolStore defines the data access interface for protocols.

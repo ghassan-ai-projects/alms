@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -87,10 +88,11 @@ type LearningRecord struct {
 	IsPinned    bool         `json:"is_pinned"`
 	IsDeleted   bool         `json:"is_deleted,omitempty"`
 	Resolution  Resolution   `json:"resolution,omitempty"`
-	SupersededBy string     `json:"superseded_by,omitempty"`
-	TTLDays     int          `json:"ttl_days,omitempty"`
-	CreatedAt   time.Time    `json:"created_at,omitempty"`
-	DeletedAt   *time.Time   `json:"deleted_at,omitempty"`
+	SupersededBy      string           `json:"superseded_by,omitempty"`
+	TTLDays           int              `json:"ttl_days,omitempty"`
+	CreatedAt         time.Time        `json:"created_at,omitempty"`
+	DeletedAt         *time.Time       `json:"deleted_at,omitempty"`
+	EnrichmentMetadata json.RawMessage `json:"enrichment_metadata,omitempty"`
 }
 
 // Validate checks the LearningRecord for required fields and valid values.

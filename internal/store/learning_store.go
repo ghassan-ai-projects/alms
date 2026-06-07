@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -24,9 +25,22 @@ func NewLearningStore(pool *pgxpool.Pool) *LearningStore {
 
 // Create inserts a new learning record and returns the generated UUID.
 func (s *LearningStore) Create(ctx context.Context, record models.LearningRecord) (string, error) {
+	// Default enrichment_metadata to pending if not set
+	enrichmentJSON := record.EnrichmentMetadata
+	if enrichmentJSON == nil {
+		pending := map[string]any{
+			"status": "pending",
+			"quality": map[string]any{
+				"score": 3.0,
+			},
+		}
+		raw, _ := json.Marshal(pending)
+		enrichmentJSON = raw
+	}
+
 	query := `
-		INSERT INTO learnings (type, title, body, tags, severity, author, src_agent_id, ai_generated, score, is_pinned, resolution, ttl_days)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO learnings (type, title, body, tags, severity, author, src_agent_id, ai_generated, score, is_pinned, resolution, ttl_days, enrichment_metadata)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING learning_id
 	`
 
@@ -44,6 +58,7 @@ func (s *LearningStore) Create(ctx context.Context, record models.LearningRecord
 		record.IsPinned,
 		nullIfEmpty(string(record.Resolution)),
 		record.TTLDays,
+		enrichmentJSON,
 	).Scan(&id)
 	if err != nil {
 		return "", fmt.Errorf("create learning: %w", err)
@@ -56,13 +71,14 @@ func (s *LearningStore) Get(ctx context.Context, learningID string) (models.Lear
 	query := `
 		SELECT learning_id, type, title, body, tags, severity, author, src_agent_id,
 		       ai_generated, score, is_pinned, is_deleted, resolution, superseded_by,
-		       ttl_days, created_at, deleted_at
+		       ttl_days, created_at, deleted_at, enrichment_metadata
 		FROM learnings
 		WHERE learning_id = $1
 	`
 
 	var rec models.LearningRecord
 	var srcAgentID, supBy *string
+	var enrichmentData []byte
 
 	err := s.pool.QueryRow(ctx, query, learningID).Scan(
 		&rec.LearningID,
@@ -82,6 +98,7 @@ func (s *LearningStore) Get(ctx context.Context, learningID string) (models.Lear
 		&rec.TTLDays,
 		&rec.CreatedAt,
 		&rec.DeletedAt,
+		&enrichmentData,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -96,6 +113,9 @@ func (s *LearningStore) Get(ctx context.Context, learningID string) (models.Lear
 	if supBy != nil {
 		rec.SupersededBy = *supBy
 	}
+	if len(enrichmentData) > 0 {
+		rec.EnrichmentMetadata = enrichmentData
+	}
 
 	return rec, nil
 }
@@ -109,7 +129,7 @@ func (s *LearningStore) Sync(ctx context.Context, agentID string, since time.Tim
 	query := `
 		SELECT l.learning_id, l.type, l.title, l.body, l.tags, l.severity, l.author,
 		       l.src_agent_id, l.ai_generated, l.score, l.is_pinned, l.resolution,
-		       l.superseded_by, l.ttl_days, l.created_at
+		       l.superseded_by, l.ttl_days, l.created_at, l.enrichment_metadata
 		FROM learnings l
 		WHERE l.created_at > $1
 		  AND NOT l.is_deleted
@@ -201,7 +221,7 @@ func (s *LearningStore) Search(ctx context.Context, query, ltype string, tags []
 	q := `
 		SELECT l.learning_id, l.type, l.title, l.body, l.tags, l.severity, l.author,
 		       l.src_agent_id, l.ai_generated, l.score, l.is_pinned, l.resolution,
-		       l.superseded_by, l.ttl_days, l.created_at
+		       l.superseded_by, l.ttl_days, l.created_at, l.enrichment_metadata
 		FROM learnings l
 		WHERE l.search_vector @@ plainto_tsquery('english', $1)
 		  AND NOT l.is_deleted
@@ -297,12 +317,79 @@ func (s *LearningStore) UpdateScore(ctx context.Context, learningID string, scor
 	return nil
 }
 
+// UpdateEnrichment merges a JSON patch into enrichment_metadata for a learning.
+// Uses JSONB || operator for shallow merge. Must NOT re-trigger "pending" status.
+func (s *LearningStore) UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
+	query := `UPDATE learnings SET enrichment_metadata = enrichment_metadata || $2::jsonb WHERE learning_id = $1`
+	tag, err := s.pool.Exec(ctx, query, learningID, enrichmentJSON)
+	if err != nil {
+		return fmt.Errorf("update enrichment %s: %w", learningID, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("learning %s: %w", learningID, models.ErrNotFound)
+	}
+	return nil
+}
+
+// SearchWithStatus performs the same search as Search() with additional filters.
+// If status is non-empty, filters by enrichment_metadata->>'status' = status.
+// If includeRejected is false (default), filters out rejected learnings.
+func (s *LearningStore) SearchWithStatus(ctx context.Context, query, ltype string, tags []string, limit int, status string, includeRejected bool) ([]models.LearningRecord, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	args := make([]any, 0, 6)
+	args = append(args, query)
+
+	q := `
+		SELECT l.learning_id, l.type, l.title, l.body, l.tags, l.severity, l.author,
+		       l.src_agent_id, l.ai_generated, l.score, l.is_pinned, l.resolution,
+		       l.superseded_by, l.ttl_days, l.created_at, l.enrichment_metadata
+		FROM learnings l
+		WHERE l.search_vector @@ plainto_tsquery('english', $1)
+		  AND NOT l.is_deleted
+	`
+	argIdx := 2
+
+	if ltype != "" {
+		q += fmt.Sprintf(" AND l.type = $%d", argIdx)
+		args = append(args, ltype)
+		argIdx++
+	}
+	if len(tags) > 0 {
+		q += fmt.Sprintf(" AND l.tags && $%d", argIdx)
+		args = append(args, tags)
+		argIdx++
+	}
+	if status != "" {
+		q += fmt.Sprintf(" AND l.enrichment_metadata->>'status' = $%d", argIdx)
+		args = append(args, status)
+		argIdx++
+	}
+	if !includeRejected {
+		q += fmt.Sprintf(` AND (l.enrichment_metadata->>'is_visible' IS NULL OR l.enrichment_metadata->>'is_visible' != 'false')`)
+	}
+
+	q += fmt.Sprintf(" ORDER BY l.score DESC LIMIT $%d", argIdx)
+	args = append(args, limit)
+
+	rows, err := s.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("search learnings: %w", err)
+	}
+	defer rows.Close()
+
+	return scanLearnings(rows)
+}
+
 // scanLearnings scans rows into LearningRecord slices.
 func scanLearnings(rows pgx.Rows) ([]models.LearningRecord, error) {
 	var records []models.LearningRecord
 	for rows.Next() {
 		var rec models.LearningRecord
 		var srcAgentID, supBy *string
+		var enrichmentData []byte
 		if err := rows.Scan(
 			&rec.LearningID,
 			&rec.Type,
@@ -319,6 +406,7 @@ func scanLearnings(rows pgx.Rows) ([]models.LearningRecord, error) {
 			&supBy,
 			&rec.TTLDays,
 			&rec.CreatedAt,
+			&enrichmentData,
 		); err != nil {
 			return nil, fmt.Errorf("scan learning row: %w", err)
 		}
@@ -327,6 +415,9 @@ func scanLearnings(rows pgx.Rows) ([]models.LearningRecord, error) {
 		}
 		if supBy != nil {
 			rec.SupersededBy = *supBy
+		}
+		if len(enrichmentData) > 0 {
+			rec.EnrichmentMetadata = enrichmentData
 		}
 		records = append(records, rec)
 	}

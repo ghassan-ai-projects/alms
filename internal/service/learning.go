@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -104,6 +105,26 @@ func (l *Learning) Search(ctx context.Context, query string, ltype string, tags 
 		return nil, fmt.Errorf("search learnings: %w", err)
 	}
 	return records, nil
+}
+
+// SearchAdvanced performs full-text search with status filter and includeRejected flag.
+func (l *Learning) SearchAdvanced(ctx context.Context, query string, ltype string, tags []string, limit int, status string, includeRejected bool) ([]models.LearningRecord, error) {
+	records, err := l.lStore.SearchWithStatus(ctx, query, ltype, tags, limit, status, includeRejected)
+	if err != nil {
+		return nil, fmt.Errorf("search advanced: %w", err)
+	}
+	return records, nil
+}
+
+// UpdateEnrichment merges enrichment metadata for a learning.
+func (l *Learning) UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
+	if learningID == "" {
+		return fmt.Errorf("%w: learning_id is required", models.ErrValidation)
+	}
+	if err := l.lStore.UpdateEnrichment(ctx, learningID, enrichmentJSON); err != nil {
+		return fmt.Errorf("update enrichment: %w", err)
+	}
+	return nil
 }
 
 // Get retrieves a single learning record by ID.
