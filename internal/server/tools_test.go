@@ -33,6 +33,7 @@ func helperServer(t *testing.T) (*server.MCPServer, *service.Registry, *service.
 	registerProtocolTools(mcpSrv, syncer)
 	registerProtocolStoreTools(mcpSrv, learningSvc)
 	registerHealthTools(mcpSrv, registry)
+	registerPhase2Tools(mcpSrv, learningSvc)
 
 	return mcpSrv, registry, syncer, learningSvc
 }
@@ -426,6 +427,187 @@ func TestProtocolListTool(t *testing.T) {
 		if len(results) != 2 {
 			t.Errorf("got %d protocols, want 2", len(results))
 		}
+	})
+}
+
+func TestLearningSearchWithStatusTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("search with include_rejected defaults to false", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		_, _ = learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Search With Status",
+			Body:  "Status filter test",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query": "Status",
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected at least 1 result with default include_rejected")
+		}
+	})
+
+	t.Run("search with include_enrichment flag", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Enrich Test",
+			Body:  "Check enrichment metadata",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		// Set enrichment via the UpdateEnrichment service
+		patch := json.RawMessage(`{"status":"accepted"}`)
+		_ = learningSvc.UpdateEnrichment(ctx, id, patch)
+
+		// Search with include_enrichment=true
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query":              "Enrich",
+			"include_enrichment": true,
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) == 0 {
+			t.Fatal("expected at least 1 result")
+		}
+		// With include_enrichment=true, enrichment metadata should be present
+		if results[0].EnrichmentMetadata == nil {
+			t.Error("expected enrichment metadata in result with include_enrichment=true")
+		}
+	})
+
+	t.Run("search with include_enrichment=false hides enrichment", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		_, _ = learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Hidden Enrich",
+			Body:  "Enrichment hidden",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query":              "Hidden",
+			"include_enrichment": false,
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) > 0 && results[0].EnrichmentMetadata != nil {
+			t.Error("expected enrichment metadata to be nil when include_enrichment=false")
+		}
+	})
+
+	t.Run("search with status filter may be empty string", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		_, _ = learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Status Filter Test",
+			Body:  "Status filter",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query":  "Status",
+			"status": "",
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected results with empty status filter")
+		}
+	})
+}
+
+func TestUpdateEnrichmentTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("update enrichment succeeds", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Enrich This",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id":      id,
+			"enrichment_patch": map[string]any{"status": "accepted", "score": 4.5},
+		})
+
+		text := getToolResultText(t, resp)
+		var result map[string]any
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			t.Fatalf("failed to unmarshal result: %v", err)
+		}
+		if result["status"] != "updated" {
+			t.Errorf("status = %q, want %q", result["status"], "updated")
+		}
+		if result["learning_id"] != id {
+			t.Errorf("learning_id = %q, want %q", result["learning_id"], id)
+		}
+	})
+
+	t.Run("update enrichment without learning_id returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id":      "",
+			"enrichment_patch": map[string]any{"status": "accepted"},
+		})
+
+		requireToolResultError(t, resp)
+	})
+
+	t.Run("update enrichment without patch returns error", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "No Patch",
+			Type:  models.LearningTypeConfig,
+		}, "")
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id": id,
+		})
+
+		requireToolResultError(t, resp)
+	})
+
+	t.Run("update enrichment non-existent returns error", func(t *testing.T) {
+		srv, _, _, _ := helperServer(t)
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id":      "non-existent",
+			"enrichment_patch": map[string]any{"status": "accepted"},
+		})
+
+		requireToolResultError(t, resp)
 	})
 }
 

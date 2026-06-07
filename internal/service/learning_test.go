@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/ghassan/alms/internal/models"
@@ -422,6 +423,128 @@ func TestStoreValidationError(t *testing.T) {
 	if err == nil {
 		t.Error("Store() expected validation error for empty title, got nil")
 	}
+}
+
+func TestSearchAdvanced(t *testing.T) {
+	t.Parallel()
+
+	t.Run("search advanced passes through to store", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		_, _ = lStore.Create(ctx, models.LearningRecord{
+			Title: "Advanced Test",
+			Body:  "Advanced search content",
+			Type:  models.LearningTypeConfig,
+		})
+
+		results, err := learning.SearchAdvanced(ctx, "Advanced", "", nil, 10, "", false)
+		if err != nil {
+			t.Fatalf("SearchAdvanced() unexpected error: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("SearchAdvanced() expected at least 1 result")
+		}
+	})
+
+	t.Run("search advanced with type filter", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		_, _ = lStore.Create(ctx, models.LearningRecord{
+			Title: "Config Item",
+			Body:  "Config data",
+			Type:  models.LearningTypeConfig,
+		})
+		_, _ = lStore.Create(ctx, models.LearningRecord{
+			Title: "Pattern Item",
+			Body:  "Pattern data",
+			Type:  models.LearningTypePattern,
+		})
+
+		results, err := learning.SearchAdvanced(ctx, "", string(models.LearningTypeConfig), nil, 10, "", false)
+		if err != nil {
+			t.Fatalf("SearchAdvanced() unexpected error: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("SearchAdvanced() with type filter got %d results, want 1", len(results))
+		}
+	})
+
+	t.Run("search advanced with store error returns error", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		lStore.SetError(assertionError("search error"))
+		_, err := learning.SearchAdvanced(ctx, "test", "", nil, 10, "", false)
+		if err == nil {
+			t.Error("SearchAdvanced() expected error, got nil")
+		}
+	})
+}
+
+func TestUpdateEnrichment(t *testing.T) {
+	t.Parallel()
+
+	t.Run("update enrichment succeeds", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Enrich Me",
+			Type:  models.LearningTypeConfig,
+		})
+
+		patch := json.RawMessage(`{"status":"accepted","quality":{"score":4.5}}`)
+		err := learning.UpdateEnrichment(ctx, id, patch)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		// Verify enrichment was stored
+		rec, err := lStore.Get(ctx, id)
+		if err != nil {
+			t.Fatalf("Get() unexpected error: %v", err)
+		}
+		if len(rec.EnrichmentMetadata) == 0 {
+			t.Error("EnrichmentMetadata should not be empty after update")
+		}
+	})
+
+	t.Run("update enrichment with empty id returns error", func(t *testing.T) {
+		learning, _, _ := helperLearning(t)
+		ctx := context.Background()
+
+		err := learning.UpdateEnrichment(ctx, "", json.RawMessage(`{}`))
+		if err == nil {
+			t.Fatal("UpdateEnrichment() expected error for empty learning_id, got nil")
+		}
+	})
+
+	t.Run("update enrichment non-existent returns error", func(t *testing.T) {
+		learning, _, _ := helperLearning(t)
+		ctx := context.Background()
+
+		err := learning.UpdateEnrichment(ctx, "non-existent", json.RawMessage(`{}`))
+		if err == nil {
+			t.Fatal("UpdateEnrichment() expected error for non-existent ID, got nil")
+		}
+	})
+
+	t.Run("update enrichment with nil JSON", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Nil Enrich",
+			Type:  models.LearningTypeConfig,
+		})
+
+		err := learning.UpdateEnrichment(ctx, id, nil)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() with nil should work: %v", err)
+		}
+	})
 }
 
 // assertionError is a simple error type for testing.
