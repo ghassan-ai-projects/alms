@@ -570,6 +570,60 @@ func TestUpdateEnrichmentTool(t *testing.T) {
 		if result["learning_id"] != id {
 			t.Errorf("learning_id = %q, want %q", result["learning_id"], id)
 		}
+
+		// Verify score also synced from enrichment patch
+		rec, _ := learningSvc.Get(ctx, id)
+		if rec.Score != 4.5 {
+			t.Errorf("Score should sync from enrichment_patch: got %f, want 4.5", rec.Score)
+		}
+	})
+
+	t.Run("update enrichment with quality_score syncs score", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Quality Score Sync",
+			Type:  models.LearningTypeConfig,
+			Score: 0.5,
+		}, "")
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id":      id,
+			"enrichment_patch": map[string]any{"quality_score": 4.8, "status": "accepted"},
+		})
+
+		getToolResultText(t, resp)
+
+		// Verify quality_score synced to score column
+		rec, _ := learningSvc.Get(ctx, id)
+		if rec.Score != 4.8 {
+			t.Errorf("Score should sync from quality_score: got %f, want 4.8", rec.Score)
+		}
+	})
+
+	t.Run("update enrichment without score does not affect score", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		id, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "No Score",
+			Type:  models.LearningTypeConfig,
+			Score: 0.3,
+		}, "")
+
+		resp := callTool(t, srv, "learning.update_enrichment", map[string]any{
+			"learning_id":      id,
+			"enrichment_patch": map[string]any{"status": "accepted"},
+		})
+
+		getToolResultText(t, resp)
+
+		// Score should remain unchanged
+		rec, _ := learningSvc.Get(ctx, id)
+		if rec.Score != 0.3 {
+			t.Errorf("Score should remain 0.3, got %f", rec.Score)
+		}
 	})
 
 	t.Run("update enrichment without learning_id returns error", func(t *testing.T) {

@@ -117,6 +117,8 @@ func (l *Learning) SearchAdvanced(ctx context.Context, query string, ltype strin
 }
 
 // UpdateEnrichment merges enrichment metadata for a learning.
+// If the enrichment JSON contains a "quality_score" or "score" field,
+// the top-level score column is also updated in the same call.
 func (l *Learning) UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
 	if learningID == "" {
 		return fmt.Errorf("%w: learning_id is required", models.ErrValidation)
@@ -124,7 +126,49 @@ func (l *Learning) UpdateEnrichment(ctx context.Context, learningID string, enri
 	if err := l.lStore.UpdateEnrichment(ctx, learningID, enrichmentJSON); err != nil {
 		return fmt.Errorf("update enrichment: %w", err)
 	}
+
+	// Extract score from enrichment metadata and sync to top-level score column
+	if score, err := extractScoreFromEnrichment(enrichmentJSON); err == nil {
+		// err != nil means the field is missing or not a float — that's fine, skip score update
+		if err := l.lStore.UpdateScore(ctx, learningID, score); err != nil {
+			return fmt.Errorf("sync score from enrichment: %w", err)
+		}
+	}
+
 	return nil
+}
+
+// extractScoreFromEnrichment extracts "quality_score" or "score" (taking
+// quality_score first) from a JSON enrichment patch. Returns an error if
+// neither field is present or if the value is not a float64.
+func extractScoreFromEnrichment(data json.RawMessage) (float64, error) {
+	if len(data) == 0 {
+		return 0, fmt.Errorf("empty enrichment data")
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return 0, fmt.Errorf("parse enrichment: %w", err)
+	}
+
+	// Try quality_score first (it's more specific)
+	if v, ok := m["quality_score"]; ok {
+		score, ok := v.(float64)
+		if !ok {
+			return 0, fmt.Errorf("quality_score is not a number")
+		}
+		return score, nil
+	}
+
+	// Fall back to score
+	if v, ok := m["score"]; ok {
+		score, ok := v.(float64)
+		if !ok {
+			return 0, fmt.Errorf("score is not a number")
+		}
+		return score, nil
+	}
+
+	return 0, fmt.Errorf("no score field in enrichment")
 }
 
 // Get retrieves a single learning record by ID.

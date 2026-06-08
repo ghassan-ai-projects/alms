@@ -545,6 +545,100 @@ func TestUpdateEnrichment(t *testing.T) {
 			t.Fatalf("UpdateEnrichment() with nil should work: %v", err)
 		}
 	})
+
+	t.Run("quality_score syncs to score column", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Score Sync",
+			Type:  models.LearningTypeConfig,
+			Score: 0.5, // default
+		})
+
+		patch := json.RawMessage(`{"quality_score": 4.5}`)
+		err := learning.UpdateEnrichment(ctx, id, patch)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		rec, _ := lStore.Get(ctx, id)
+		if rec.Score != 4.5 {
+			t.Errorf("Score = %f, want 4.5", rec.Score)
+		}
+		// Verify enrichment_metadata was also updated
+		if len(rec.EnrichmentMetadata) == 0 {
+			t.Error("EnrichmentMetadata should not be empty")
+		}
+	})
+
+	t.Run("score field also syncs to score column", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Score Field",
+			Type:  models.LearningTypeConfig,
+			Score: 0.5,
+		})
+
+		patch := json.RawMessage(`{"score": 3.0}`)
+		err := learning.UpdateEnrichment(ctx, id, patch)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		rec, _ := lStore.Get(ctx, id)
+		if rec.Score != 3.0 {
+			t.Errorf("Score = %f, want 3.0", rec.Score)
+		}
+	})
+
+	t.Run("quality_score takes precedence over score", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Precedence",
+			Type:  models.LearningTypeConfig,
+		})
+
+		patch := json.RawMessage(`{"quality_score": 4.2, "score": 2.0}`)
+		err := learning.UpdateEnrichment(ctx, id, patch)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		rec, _ := lStore.Get(ctx, id)
+		if rec.Score != 4.2 {
+			t.Errorf("Score = %f, want 4.2 (quality_score over score)", rec.Score)
+		}
+	})
+
+	t.Run("status-only patch does not affect score column", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, _ := lStore.Create(ctx, models.LearningRecord{
+			Title: "Status Only",
+			Type:  models.LearningTypeConfig,
+			Score: 0.7,
+		})
+
+		patch := json.RawMessage(`{"status": "accepted"}`)
+		err := learning.UpdateEnrichment(ctx, id, patch)
+		if err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		rec, _ := lStore.Get(ctx, id)
+		if rec.Score != 0.7 {
+			t.Errorf("Score should remain 0.7, got %f", rec.Score)
+		}
+		if len(rec.EnrichmentMetadata) == 0 {
+			t.Error("EnrichmentMetadata should be set")
+		}
+	})
 }
 
 // assertionError is a simple error type for testing.
