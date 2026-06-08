@@ -16,7 +16,7 @@ on:
     branches: [main]
 
 env:
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.25.5"
 
 jobs:
   ci:
@@ -74,7 +74,7 @@ jobs:
           ALMS_PG_DSN: "postgres://alms:alms@localhost:5432/alms_db?sslmode=disable"
 
       - name: Deadcode
-        run: deadcode ./...
+        run: deadcode -test ./...
 
       - name: Vulncheck
         run: govulncheck ./...

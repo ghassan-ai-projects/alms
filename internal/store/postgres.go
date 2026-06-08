@@ -35,11 +35,3 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 
 	return pool, nil
 }
-
-// Ping verifies the database connection is alive.
-func Ping(ctx context.Context, pool *pgxpool.Pool) error {
-	if err := pool.Ping(ctx); err != nil {
-		return fmt.Errorf("ping database: %w", err)
-	}
-	return nil
-}

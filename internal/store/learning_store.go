@@ -368,7 +368,7 @@ func (s *LearningStore) SearchWithStatus(ctx context.Context, query, ltype strin
 		argIdx++
 	}
 	if !includeRejected {
-		q += fmt.Sprintf(` AND (l.enrichment_metadata->>'is_visible' IS NULL OR l.enrichment_metadata->>'is_visible' != 'false')`)
+		q += ` AND (l.enrichment_metadata->>'is_visible' IS NULL OR l.enrichment_metadata->>'is_visible' != 'false')`
 	}
 
 	q += fmt.Sprintf(" ORDER BY l.score DESC LIMIT $%d", argIdx)
