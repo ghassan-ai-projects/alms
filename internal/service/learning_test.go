@@ -100,6 +100,32 @@ func TestLearningStoreDedup(t *testing.T) {
 		}
 	})
 
+	t.Run("applies pending enrichment metadata by default", func(t *testing.T) {
+		learning, lStore, _ := helperLearning(t)
+		ctx := context.Background()
+
+		id, err := learning.Store(ctx, models.LearningRecord{
+			Title: "Pending enrichment default",
+			Type:  models.LearningTypeConfig,
+		}, "")
+		if err != nil {
+			t.Fatalf("Store() unexpected error: %v", err)
+		}
+
+		got, err := lStore.Get(ctx, id)
+		if err != nil {
+			t.Fatalf("Get() unexpected error: %v", err)
+		}
+
+		var meta map[string]any
+		if err := json.Unmarshal(got.EnrichmentMetadata, &meta); err != nil {
+			t.Fatalf("Unmarshal() unexpected error: %v", err)
+		}
+		if meta["status"] != "pending" {
+			t.Errorf("status = %v, want pending", meta["status"])
+		}
+	})
+
 	t.Run("store with supersession", func(t *testing.T) {
 		learning, lStore, _ := helperLearning(t)
 		ctx := context.Background()

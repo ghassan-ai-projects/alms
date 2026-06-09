@@ -25,18 +25,7 @@ func NewLearningStore(pool *pgxpool.Pool) *LearningStore {
 
 // Create inserts a new learning record and returns the generated UUID.
 func (s *LearningStore) Create(ctx context.Context, record models.LearningRecord) (string, error) {
-	// Default enrichment_metadata to pending if not set
-	enrichmentJSON := record.EnrichmentMetadata
-	if enrichmentJSON == nil {
-		pending := map[string]any{
-			"status": "pending",
-			"quality": map[string]any{
-				"score": 3.0,
-			},
-		}
-		raw, _ := json.Marshal(pending)
-		enrichmentJSON = raw
-	}
+	enrichmentJSON := models.NormalizeEnrichmentMetadata(record.EnrichmentMetadata)
 
 	query := `
 		INSERT INTO learnings (type, title, body, tags, severity, author, src_agent_id, ai_generated, score, is_pinned, resolution, ttl_days, enrichment_metadata)

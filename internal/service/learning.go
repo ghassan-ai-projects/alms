@@ -43,6 +43,7 @@ func (l *Learning) Store(ctx context.Context, record models.LearningRecord, supe
 	if record.Severity == "" {
 		record.Severity = models.SeverityMedium
 	}
+	record.EnrichmentMetadata = models.NormalizeEnrichmentMetadata(record.EnrichmentMetadata)
 
 	record.CreatedAt = time.Now()
 

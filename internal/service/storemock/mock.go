@@ -14,9 +14,9 @@ import (
 
 // AgentStore is an in-memory mock of service.AgentStore.
 type AgentStore struct {
-	mu    sync.Mutex
+	mu     sync.Mutex
 	agents map[string]*models.AgentSpec
-	err   error // injected error for testing failure paths
+	err    error // injected error for testing failure paths
 }
 
 // NewAgentStore creates an empty AgentStore mock.
@@ -165,11 +165,11 @@ func (m *AgentStore) GetAll() map[string]models.AgentSpec {
 
 // LearningStore is an in-memory mock of service.LearningStore.
 type LearningStore struct {
-	mu       sync.Mutex
-	records  map[string]*models.LearningRecord
-	acks     map[string][]string // agentID -> []learningID
+	mu           sync.Mutex
+	records      map[string]*models.LearningRecord
+	acks         map[string][]string // agentID -> []learningID
 	agentCursors map[string]time.Time
-	err      error
+	err          error
 }
 
 // NewLearningStore creates an empty LearningStore mock.
@@ -207,6 +207,7 @@ func (m *LearningStore) Create(ctx context.Context, record models.LearningRecord
 	if cp.CreatedAt.IsZero() {
 		cp.CreatedAt = time.Now()
 	}
+	cp.EnrichmentMetadata = models.NormalizeEnrichmentMetadata(cp.EnrichmentMetadata)
 	m.records[id] = &cp
 	return id, nil
 }
@@ -418,7 +419,66 @@ func (m *LearningStore) UpdateEnrichment(ctx context.Context, learningID string,
 
 // SearchWithStatus searches with additional filter params for status and includeRejected.
 func (m *LearningStore) SearchWithStatus(ctx context.Context, query string, ltype string, tags []string, limit int, status string, includeRejected bool) ([]models.LearningRecord, error) {
-	return m.Search(ctx, query, ltype, tags, limit)
+	if err := m.getErr(); err != nil {
+		return nil, err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var result []models.LearningRecord
+	for _, rec := range m.records {
+		if rec.IsDeleted {
+			continue
+		}
+		if !containsSubstring(rec.Title, query) && !containsSubstring(rec.Body, query) {
+			continue
+		}
+		if ltype != "" && string(rec.Type) != ltype {
+			continue
+		}
+		if len(tags) > 0 {
+			tagMatch := false
+			for _, t := range tags {
+				for _, rt := range rec.Tags {
+					if t == rt {
+						tagMatch = true
+						break
+					}
+				}
+				if tagMatch {
+					break
+				}
+			}
+			if !tagMatch {
+				continue
+			}
+		}
+
+		enrichment := models.NormalizeEnrichmentMetadata(rec.EnrichmentMetadata)
+		var meta map[string]any
+		if err := json.Unmarshal(enrichment, &meta); err != nil {
+			return nil, fmt.Errorf("parse enrichment metadata: %w", err)
+		}
+
+		recStatus, _ := meta["status"].(string)
+		if status != "" && recStatus != status {
+			continue
+		}
+
+		if !includeRejected {
+			if visible, ok := meta["is_visible"].(bool); ok && !visible {
+				continue
+			}
+		}
+
+		cp := *rec
+		cp.EnrichmentMetadata = enrichment
+		result = append(result, cp)
+	}
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
 }
 
 // UpdateScore updates the score of a learning record.

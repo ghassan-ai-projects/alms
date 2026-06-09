@@ -141,7 +141,7 @@ func registerAgentTools(mcpSrv *server.MCPServer, registry *service.Registry) {
 		}
 
 		return marshalResult(map[string]any{
-			"agent_id":         agentID,
+			"agent_id":       agentID,
 			"last_heartbeat": ts.Format(time.RFC3339),
 		})
 	})
@@ -239,12 +239,12 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 		}
 
 		rec := models.LearningRecord{
-			Title:       title,
-			Body:        body,
-			Type:        models.LearningType(ltype),
-			Tags:        tags,
-			Author:      agentID,
-			SrcAgentID:  agentID,
+			Title:      title,
+			Body:       body,
+			Type:       models.LearningType(ltype),
+			Tags:       tags,
+			Author:     agentID,
+			SrcAgentID: agentID,
 		}
 
 		// Use dedup-aware store to check for exact and near duplicates
@@ -255,9 +255,7 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 
 		// Fetch stored record to get enrichment metadata
 		stored, _ := learning.Get(ctx, id)
-		enrichment := json.RawMessage(
-			[]byte(`{"status":"pending","quality":{"score":3.0}}`),
-		)
+		enrichment := models.DefaultEnrichmentMetadata()
 		if len(stored.EnrichmentMetadata) > 0 {
 			enrichment = stored.EnrichmentMetadata
 		}
@@ -280,7 +278,7 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 		),
 		mcp.WithNumber("limit", mcp.Description("Max results (default 20)")),
 		mcp.WithBoolean("include_enrichment", mcp.Description("Include enrichment metadata in results (default false)")),
-		mcp.WithString("status", mcp.Description("Filter by enrichment status (pending, accepted, rejected, error)")),
+		mcp.WithString("status", mcp.Description("Filter by enrichment status (default pending; use all to disable status filtering)")),
 		mcp.WithBoolean("include_rejected", mcp.Description("Include rejected learnings in results (default false)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		query := req.GetString("query", "")
@@ -288,11 +286,15 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 		tags := req.GetStringSlice("tags", nil)
 		limit := req.GetInt("limit", 20)
 		includeEnrichment := req.GetBool("include_enrichment", false)
-		status := req.GetString("status", "")
+		status := req.GetString("status", "pending")
 		includeRejected := req.GetBool("include_rejected", false)
 
 		if query == "" {
 			return mcp.NewToolResultError("query is required"), nil
+		}
+
+		if status == "all" {
+			status = ""
 		}
 
 		records, err := learning.SearchAdvanced(ctx, query, ltype, tags, limit, status, includeRejected)
@@ -331,8 +333,8 @@ func registerLearningStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 		}
 
 		return marshalResult(map[string]any{
-			"deleted":     learningID,
-			"status":      "soft_deleted",
+			"deleted": learningID,
+			"status":  "soft_deleted",
 		})
 	})
 
@@ -416,11 +418,11 @@ func registerProtocolStoreTools(mcpSrv *server.MCPServer, learning *service.Lear
 		}
 
 		rec := models.ProtocolRecord{
-			Title:       title,
-			Body:        body,
-			TargetTags:  targetTags,
-			IsActive:    true,
-			Version:     1,
+			Title:      title,
+			Body:       body,
+			TargetTags: targetTags,
+			IsActive:   true,
+			Version:    1,
 		}
 
 		id, err := learning.ProtocolPush(ctx, rec)

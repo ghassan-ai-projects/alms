@@ -235,6 +235,13 @@ func TestLearningStoreTool(t *testing.T) {
 		if id, ok := result["learning_id"].(string); !ok || id == "" {
 			t.Error("expected non-empty learning_id")
 		}
+		enrichment, ok := result["enrichment"].(map[string]any)
+		if !ok {
+			t.Fatal("expected enrichment object in result")
+		}
+		if enrichment["status"] != "pending" {
+			t.Errorf("enrichment.status = %v, want pending", enrichment["status"])
+		}
 	})
 
 	t.Run("store without agent_id returns error", func(t *testing.T) {
@@ -433,18 +440,24 @@ func TestProtocolListTool(t *testing.T) {
 func TestLearningSearchWithStatusTool(t *testing.T) {
 	t.Parallel()
 
-	t.Run("search with include_rejected defaults to false", func(t *testing.T) {
+	t.Run("search defaults to pending status only", func(t *testing.T) {
 		srv, _, _, learningSvc := helperServer(t)
 		ctx := context.Background()
 
 		_, _ = learningSvc.Store(ctx, models.LearningRecord{
-			Title: "Search With Status",
-			Body:  "Status filter test",
+			Title: "Queue Candidate",
+			Body:  "Shared query text",
 			Type:  models.LearningTypeConfig,
 		}, "")
+		acceptedID, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Already Scored",
+			Body:  "Shared query text",
+			Type:  models.LearningTypeConfig,
+		}, "")
+		_ = learningSvc.UpdateEnrichment(ctx, acceptedID, json.RawMessage(`{"status":"accepted"}`))
 
 		resp := callTool(t, srv, "learning.search", map[string]any{
-			"query": "Status",
+			"query": "Shared",
 		})
 
 		text := getToolResultText(t, resp)
@@ -452,8 +465,11 @@ func TestLearningSearchWithStatusTool(t *testing.T) {
 		if err := json.Unmarshal([]byte(text), &results); err != nil {
 			t.Fatalf("failed to unmarshal results: %v", err)
 		}
-		if len(results) == 0 {
-			t.Error("expected at least 1 result with default include_rejected")
+		if len(results) != 1 {
+			t.Fatalf("expected 1 pending result, got %d", len(results))
+		}
+		if results[0].Title != "Queue Candidate" {
+			t.Errorf("Title = %q, want %q", results[0].Title, "Queue Candidate")
 		}
 	})
 
@@ -475,6 +491,7 @@ func TestLearningSearchWithStatusTool(t *testing.T) {
 		resp := callTool(t, srv, "learning.search", map[string]any{
 			"query":              "Enrich",
 			"include_enrichment": true,
+			"status":             "accepted",
 		})
 
 		text := getToolResultText(t, resp)
@@ -516,19 +533,26 @@ func TestLearningSearchWithStatusTool(t *testing.T) {
 		}
 	})
 
-	t.Run("search with status filter may be empty string", func(t *testing.T) {
+	t.Run("search with explicit accepted status returns accepted learnings", func(t *testing.T) {
 		srv, _, _, learningSvc := helperServer(t)
 		ctx := context.Background()
 
-		_, _ = learningSvc.Store(ctx, models.LearningRecord{
-			Title: "Status Filter Test",
+		pendingID, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Pending Status Filter Test",
 			Body:  "Status filter",
 			Type:  models.LearningTypeConfig,
 		}, "")
+		acceptedID, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Accepted Status Filter Test",
+			Body:  "Status filter",
+			Type:  models.LearningTypeConfig,
+		}, "")
+		_ = pendingID
+		_ = learningSvc.UpdateEnrichment(ctx, acceptedID, json.RawMessage(`{"status":"accepted"}`))
 
 		resp := callTool(t, srv, "learning.search", map[string]any{
 			"query":  "Status",
-			"status": "",
+			"status": "accepted",
 		})
 
 		text := getToolResultText(t, resp)
@@ -536,8 +560,42 @@ func TestLearningSearchWithStatusTool(t *testing.T) {
 		if err := json.Unmarshal([]byte(text), &results); err != nil {
 			t.Fatalf("failed to unmarshal results: %v", err)
 		}
-		if len(results) == 0 {
-			t.Error("expected results with empty status filter")
+		if len(results) != 1 {
+			t.Fatalf("expected 1 accepted result, got %d", len(results))
+		}
+		if results[0].Title != "Accepted Status Filter Test" {
+			t.Errorf("Title = %q, want %q", results[0].Title, "Accepted Status Filter Test")
+		}
+	})
+
+	t.Run("search with status all disables default pending filter", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx := context.Background()
+
+		_, _ = learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Pending All Filter Test",
+			Body:  "Status all filter",
+			Type:  models.LearningTypeConfig,
+		}, "")
+		acceptedID, _ := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Accepted All Filter Test",
+			Body:  "Status all filter",
+			Type:  models.LearningTypeConfig,
+		}, "")
+		_ = learningSvc.UpdateEnrichment(ctx, acceptedID, json.RawMessage(`{"status":"accepted"}`))
+
+		resp := callTool(t, srv, "learning.search", map[string]any{
+			"query":  "Status all",
+			"status": "all",
+		})
+
+		text := getToolResultText(t, resp)
+		var results []models.LearningRecord
+		if err := json.Unmarshal([]byte(text), &results); err != nil {
+			t.Fatalf("failed to unmarshal results: %v", err)
+		}
+		if len(results) != 2 {
+			t.Fatalf("expected 2 results with status=all, got %d", len(results))
 		}
 	})
 }

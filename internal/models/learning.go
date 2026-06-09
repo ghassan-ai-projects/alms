@@ -75,24 +75,39 @@ var ValidResolutions = map[Resolution]bool{
 
 // LearningRecord represents a single learning entry shared between agents.
 type LearningRecord struct {
-	LearningID  string       `json:"learning_id,omitempty"`
-	Type        LearningType `json:"type"`
-	Title       string       `json:"title"`
-	Body        string       `json:"body,omitempty"`
-	Tags        []string     `json:"tags,omitempty"`
-	Severity    Severity     `json:"severity,omitempty"`
-	Author      string       `json:"author,omitempty"`
-	SrcAgentID  string       `json:"src_agent_id,omitempty"`
-	AIGenerated bool         `json:"ai_generated"`
-	Score       float64      `json:"score,omitempty"`
-	IsPinned    bool         `json:"is_pinned"`
-	IsDeleted   bool         `json:"is_deleted,omitempty"`
-	Resolution  Resolution   `json:"resolution,omitempty"`
-	SupersededBy      string           `json:"superseded_by,omitempty"`
-	TTLDays           int              `json:"ttl_days,omitempty"`
-	CreatedAt         time.Time        `json:"created_at,omitempty"`
-	DeletedAt         *time.Time       `json:"deleted_at,omitempty"`
+	LearningID         string          `json:"learning_id,omitempty"`
+	Type               LearningType    `json:"type"`
+	Title              string          `json:"title"`
+	Body               string          `json:"body,omitempty"`
+	Tags               []string        `json:"tags,omitempty"`
+	Severity           Severity        `json:"severity,omitempty"`
+	Author             string          `json:"author,omitempty"`
+	SrcAgentID         string          `json:"src_agent_id,omitempty"`
+	AIGenerated        bool            `json:"ai_generated"`
+	Score              float64         `json:"score,omitempty"`
+	IsPinned           bool            `json:"is_pinned"`
+	IsDeleted          bool            `json:"is_deleted,omitempty"`
+	Resolution         Resolution      `json:"resolution,omitempty"`
+	SupersededBy       string          `json:"superseded_by,omitempty"`
+	TTLDays            int             `json:"ttl_days,omitempty"`
+	CreatedAt          time.Time       `json:"created_at,omitempty"`
+	DeletedAt          *time.Time      `json:"deleted_at,omitempty"`
 	EnrichmentMetadata json.RawMessage `json:"enrichment_metadata,omitempty"`
+}
+
+// DefaultEnrichmentMetadata returns the default enrichment payload for newly
+// created learnings.
+func DefaultEnrichmentMetadata() json.RawMessage {
+	return json.RawMessage(`{"status":"pending","quality":{"score":3.0}}`)
+}
+
+// NormalizeEnrichmentMetadata ensures new learnings always start with
+// enrichment metadata. Existing metadata is preserved as-is.
+func NormalizeEnrichmentMetadata(data json.RawMessage) json.RawMessage {
+	if len(data) == 0 {
+		return DefaultEnrichmentMetadata()
+	}
+	return data
 }
 
 // Validate checks the LearningRecord for required fields and valid values.
