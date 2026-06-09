@@ -6,6 +6,12 @@ import (
 	"testing"
 )
 
+func clearConfigEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("ALMS_PG_DSN", "")
+	t.Setenv("ALMS_AUTH_TOKEN", "")
+}
+
 func TestServerAddr(t *testing.T) {
 	t.Parallel()
 
@@ -64,6 +70,8 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadDefaults(t *testing.T) {
+	clearConfigEnv(t)
+
 	// Load with empty path and no env overrides — should return defaults
 	cfg := Load("")
 
@@ -76,7 +84,7 @@ func TestLoadDefaults(t *testing.T) {
 }
 
 func TestLoadFromFile(t *testing.T) {
-	t.Parallel()
+	clearConfigEnv(t)
 
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "alms.yaml")
@@ -112,6 +120,7 @@ auth:
 }
 
 func TestLoadFromEnv(t *testing.T) {
+	clearConfigEnv(t)
 
 	// Load from file to set defaults, then override with env vars
 	dir := t.TempDir()
@@ -144,7 +153,7 @@ auth:
 }
 
 func TestLoadBrokenConfigFile(t *testing.T) {
-	t.Parallel()
+	clearConfigEnv(t)
 
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "alms.yaml")
@@ -162,7 +171,7 @@ func TestLoadBrokenConfigFile(t *testing.T) {
 }
 
 func TestLoadNonExistentFile(t *testing.T) {
-	t.Parallel()
+	clearConfigEnv(t)
 
 	cfg := Load("/nonexistent/path/alms.yaml")
 	// Should return defaults
