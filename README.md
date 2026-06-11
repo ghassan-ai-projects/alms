@@ -1,6 +1,6 @@
 # ALMS
 
-ALMS is a self-hosted MCP server for shared agent memory. It provides an agent registry, a cross-agent learning store, and protocol distribution without becoming an agent runtime or orchestration framework.
+ALMS is the Agent Learning Management System. It is a self-hosted MCP server for shared agent learning. It provides an agent registry, a cross-agent learning store, and protocol distribution without becoming an agent runtime or orchestration framework.
 
 ## Why ALMS
 
@@ -33,11 +33,31 @@ Prerequisites:
 - `golang-migrate`
 - `golangci-lint`
 
-Run locally:
+Run locally with Docker for PostgreSQL:
 
 ```bash
 docker compose up -d db
 export ALMS_PG_DSN="postgres://alms:alms@localhost:5432/alms_db?sslmode=disable"
+export ALMS_AUTH_TOKEN="change-me"
+migrate -path internal/store/migrations -database "$ALMS_PG_DSN" up
+make build
+./bin/alms
+```
+
+Run locally without Docker:
+
+1. Install and start PostgreSQL on your machine.
+2. Create the local user and database:
+
+```bash
+createuser -s alms
+createdb -O alms alms_db
+```
+
+3. Configure ALMS and apply migrations:
+
+```bash
+export ALMS_PG_DSN="postgres://alms@localhost:5432/alms_db?sslmode=disable"
 export ALMS_AUTH_TOKEN="change-me"
 migrate -path internal/store/migrations -database "$ALMS_PG_DSN" up
 make build
