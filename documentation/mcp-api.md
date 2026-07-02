@@ -8,7 +8,7 @@ Current public release: `0.1.0`
 
 ## Tools
 
-ALMS currently registers 17 tools.
+ALMS currently registers 18 tools.
 
 ### Agent Tools
 
@@ -38,6 +38,10 @@ ALMS currently registers 17 tools.
 ### Health Tool
 
 - `health.check`: return server health and agent count
+
+### OKF Tool
+
+- `okf.export`: export accepted, high-confidence ALMS learnings as an OKF v0.1 bundle payload
 
 ## Resources
 
@@ -128,11 +132,32 @@ ALMS currently registers 5 resources.
 }
 ```
 
+### Export Learnings As OKF
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "okf.export",
+    "arguments": {
+      "query": "retry malformed JSON",
+      "status": "accepted",
+      "min_score": 4.0,
+      "tags": ["api"],
+      "limit": 50
+    }
+  }
+}
+```
+
 ## API Notes
 
 - `learning.search` requires a non-empty `query`.
 - `learning.sync_ack` requires a non-empty ordered `learning_ids` list.
 - `learning.update_enrichment` exists for enrichment and scoring workflows; this is relevant when integrating ALMS with asynchronous agent-side evaluation.
+- `okf.export` returns a JSON payload containing OKF file paths and file contents. It does not write files to disk. By default it exports learnings with enrichment status `accepted` and score `>= 4.0`. `query` is optional; callers can export by tags, type, status, and score alone.
 
 ## Compatibility Note
 
