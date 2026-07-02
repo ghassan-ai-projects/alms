@@ -4,5 +4,6 @@ bin/
 ~/.alms/
 .gocache/
 .go-build/
+.gomodcache/
 .golangci-cache/
 docs/
