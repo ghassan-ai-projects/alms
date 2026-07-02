@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -34,6 +35,7 @@ func helperServer(t *testing.T) (*server.MCPServer, *service.Registry, *service.
 	registerProtocolStoreTools(mcpSrv, learningSvc)
 	registerHealthTools(mcpSrv, registry)
 	registerPhase2Tools(mcpSrv, learningSvc)
+	registerOKFTools(mcpSrv, learningSvc)
 
 	return mcpSrv, registry, syncer, learningSvc
 }
@@ -720,6 +722,86 @@ func TestUpdateEnrichmentTool(t *testing.T) {
 		})
 
 		requireToolResultError(t, resp)
+	})
+}
+
+func TestOKFExportTool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exports accepted high-confidence learnings", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		id, err := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Retry payment API timeouts",
+			Body:  "Retry twice with exponential backoff when the payment API times out.",
+			Type:  models.LearningTypePattern,
+			Tags:  []string{"payment"},
+			Score: 4.7,
+		}, "")
+		if err != nil {
+			t.Fatalf("Store() unexpected error: %v", err)
+		}
+		if err := learningSvc.UpdateEnrichment(ctx, id, json.RawMessage(`{"status":"accepted"}`)); err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		resp := callTool(t, srv, "okf.export", map[string]any{
+			"query":     "payment",
+			"min_score": 4.0,
+		})
+
+		text := getToolResultText(t, resp)
+		var bundle service.OKFBundle
+		if err := json.Unmarshal([]byte(text), &bundle); err != nil {
+			t.Fatalf("failed to unmarshal bundle: %v", err)
+		}
+		if bundle.OKFVersion != "0.1" {
+			t.Errorf("OKFVersion = %q, want 0.1", bundle.OKFVersion)
+		}
+		if bundle.Summary.Exported != 1 {
+			t.Errorf("Exported = %d, want 1", bundle.Summary.Exported)
+		}
+		if len(bundle.Files) != 2 {
+			t.Fatalf("Files length = %d, want 2", len(bundle.Files))
+		}
+		if !strings.Contains(bundle.Files[1].Content, "type: ALMS Pattern") {
+			t.Errorf("concept content missing OKF type:\n%s", bundle.Files[1].Content)
+		}
+	})
+
+	t.Run("exports with tags and no query", func(t *testing.T) {
+		srv, _, _, learningSvc := helperServer(t)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		id, err := learningSvc.Store(ctx, models.LearningRecord{
+			Title: "Deployment rollback pattern",
+			Body:  "Rollback before retrying a failed deployment.",
+			Type:  models.LearningTypePattern,
+			Tags:  []string{"deploy"},
+			Score: 4.5,
+		}, "")
+		if err != nil {
+			t.Fatalf("Store() unexpected error: %v", err)
+		}
+		if err := learningSvc.UpdateEnrichment(ctx, id, json.RawMessage(`{"status":"accepted"}`)); err != nil {
+			t.Fatalf("UpdateEnrichment() unexpected error: %v", err)
+		}
+
+		resp := callTool(t, srv, "okf.export", map[string]any{
+			"tags": []any{"deploy"},
+		})
+
+		text := getToolResultText(t, resp)
+		var bundle service.OKFBundle
+		if err := json.Unmarshal([]byte(text), &bundle); err != nil {
+			t.Fatalf("failed to unmarshal bundle: %v", err)
+		}
+		if bundle.Summary.Exported != 1 {
+			t.Errorf("Exported = %d, want 1", bundle.Summary.Exported)
+		}
 	})
 }
 

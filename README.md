@@ -18,6 +18,7 @@ ALMS is designed to stay out of the hot path. Agents should continue working whe
 - Go single-binary MCP server
 - PostgreSQL-backed agent registry
 - learning storage, search, sync, soft delete, and enrichment update flow
+- OKF v0.1 export for accepted, high-confidence learnings
 - protocol publishing and retrieval
 - Streamable HTTP MCP transport
 - deployment assets for systemd-based environments

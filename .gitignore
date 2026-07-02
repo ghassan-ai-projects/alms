@@ -3,4 +3,6 @@ bin/
 .env
 ~/.alms/
 .gocache/
+.go-build/
+.golangci-cache/
 docs/
