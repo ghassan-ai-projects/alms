@@ -1,5 +1,7 @@
 # ALMS
 
+> **Author:** [Ghassan Alhamoud](https://ghassan-alhamoud.com)
+
 ALMS is the Agent Learning Management System. It is a self-hosted MCP server for shared agent learning. It provides an agent registry, a cross-agent learning store, and protocol distribution without becoming an agent runtime or orchestration framework.
 
 ## Why ALMS
