@@ -8,7 +8,7 @@ Tests remain deferred until every production file has reached a terminal status.
 
 | Order | File | Lines | Status | Commit | Notes |
 |---:|---|---:|---|---|---|
-| 1 | `internal/service/storemock/mock.go` | 694 | reviewed | — | Split into agent, learning, protocol, and shared-helper files; tests deferred. |
+| 1 | `internal/service/storemock/mock.go` | 694 | bar_met | `49ad345` | Split into six cohesive files; resulting max is 163 lines; tests deferred. |
 | 2 | `internal/server/tools.go` | 554 | queued | — | Split required. |
 | 3 | `internal/store/learning_store.go` | 439 | queued | — | Split required. |
 | 4 | `internal/service/okf.go` | 325 | queued | — | Split required. |
