@@ -31,3 +31,4 @@ Tests are intentionally deferred until all implementation and review loops are c
 - [Improvement ideas](03-improvement-ideas.md)
 - [Per-file evidence](04-file-evidence.md)
 - [Resulting production-file inventory](05-resulting-file-inventory.md)
+- [GitHub Actions cost optimization](06-github-actions-optimization.md)
