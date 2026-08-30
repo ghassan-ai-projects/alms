@@ -50,3 +50,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; all resulting production service files are at or below 250 lines.
 - Behavior note: No export format or service contract was intentionally changed.
+
+### `internal/store/agent_store.go`
+
+- Candidate review: The bounded review accepted the two-file split but identified responsibility density in `List` and duplicated JSON encoding in `Create` and `Update`.
+- Change or disposition: Kept mutations in `agent_store.go`, moved list/count queries to `agent_store_queries.go`, extracted `marshalAgentData` and `decodeAgentData` to `agent_store_encoding.go`, and kept `List` query construction and row scanning delegated to named helpers.
+- Review/fix: Preserved upsert behavior, JSON error messages, strict `Get` decoding, ignored `List` decoding errors, pagination normalization, SQL parameterization, ordering, and not-found handling. Ran `gofmt` on changed files and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; resulting production store files are at or below 250 lines.
+- Behavior note: No schema or service-interface changes were introduced.

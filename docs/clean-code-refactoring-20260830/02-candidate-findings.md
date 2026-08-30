@@ -41,3 +41,11 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: preserve raw ID path construction, byte-based description truncation, silent malformed-enrichment handling, Markdown title reparsing, and error wrapping unless separately approved.
 - `Out of scope`: path sanitization, UTF-8-safe truncation, structured index titles, Markdown escaping, richer summary output, clock injection, and malformed metadata diagnostics.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/store/agent_store.go`
+
+- `Fact`: the initial split separated list/count queries from agent mutations; the bounded follow-up review found JSON encoding/decoding still duplicated or mixed into persistence methods.
+- `Change`: extracted `marshalAgentData` and `decodeAgentData` while preserving the existing distinction between strict `Get` decoding and ignored `List` decoding errors.
+- `Behavior risk`: preserve upsert fields, `RowsAffected()` not-found handling, parameterized filter values, pagination defaults, and created-at ordering.
+- `Out of scope`: deterministic pagination tie-breakers, strict list decode errors, typed filters, payload-size validation, and compile-time interface assertions.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

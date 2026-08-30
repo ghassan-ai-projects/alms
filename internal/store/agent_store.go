@@ -2,10 +2,8 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -26,13 +24,9 @@ func NewAgentStore(pool *pgxpool.Pool) *AgentStore {
 
 // Create inserts a new agent record.
 func (s *AgentStore) Create(ctx context.Context, spec models.AgentSpec) error {
-	capBytes, err := json.Marshal(spec.Capabilities)
+	capBytes, metaBytes, err := marshalAgentData(spec)
 	if err != nil {
-		return fmt.Errorf("marshal capabilities: %w", err)
-	}
-	metaBytes, err := json.Marshal(spec.Metadata)
-	if err != nil {
-		return fmt.Errorf("marshal metadata: %w", err)
+		return err
 	}
 
 	query := `
@@ -100,15 +94,8 @@ func (s *AgentStore) Get(ctx context.Context, agentID string) (models.AgentSpec,
 		return spec, fmt.Errorf("get agent %s: %w", agentID, err)
 	}
 
-	if len(capBytes) > 0 {
-		if err := json.Unmarshal(capBytes, &spec.Capabilities); err != nil {
-			return spec, fmt.Errorf("unmarshal capabilities: %w", err)
-		}
-	}
-	if len(metaBytes) > 0 {
-		if err := json.Unmarshal(metaBytes, &spec.Metadata); err != nil {
-			return spec, fmt.Errorf("unmarshal metadata: %w", err)
-		}
+	if err := decodeAgentData(capBytes, metaBytes, &spec); err != nil {
+		return spec, err
 	}
 
 	return spec, nil
@@ -117,13 +104,9 @@ func (s *AgentStore) Get(ctx context.Context, agentID string) (models.AgentSpec,
 // Update modifies an existing agent record. Returns ErrNotFound if the agent
 // does not exist.
 func (s *AgentStore) Update(ctx context.Context, spec models.AgentSpec) error {
-	capBytes, err := json.Marshal(spec.Capabilities)
+	capBytes, metaBytes, err := marshalAgentData(spec)
 	if err != nil {
-		return fmt.Errorf("marshal capabilities: %w", err)
-	}
-	metaBytes, err := json.Marshal(spec.Metadata)
-	if err != nil {
-		return fmt.Errorf("marshal metadata: %w", err)
+		return err
 	}
 
 	query := `
@@ -190,86 +173,4 @@ func (s *AgentStore) Heartbeat(ctx context.Context, agentID string) (time.Time, 
 		return now, fmt.Errorf("heartbeat agent %s: %w", agentID, err)
 	}
 	return now, nil
-}
-
-// List returns agents matching the optional type filter with pagination.
-func (s *AgentStore) List(ctx context.Context, filter map[string]string, limit, offset int) ([]models.AgentSpec, error) {
-	if limit <= 0 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	args := make([]any, 0, 3)
-	wheres := make([]string, 0, 1)
-
-	argIdx := 1
-	if agentType, ok := filter["agent_type"]; ok && agentType != "" {
-		wheres = append(wheres, fmt.Sprintf("agent_type = $%d", argIdx))
-		args = append(args, agentType)
-		argIdx++
-	}
-
-	query := `
-		SELECT agent_id, display_name, agent_type, capabilities, metadata,
-		       last_sync_ts, last_sync_at, last_heartbeat, health_score,
-		       created_at, updated_at
-		FROM agents
-	`
-	if len(wheres) > 0 {
-		query += " WHERE " + strings.Join(wheres, " AND ")
-	}
-	query += fmt.Sprintf(" ORDER BY created_at ASC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
-	args = append(args, limit, offset)
-
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("list agents: %w", err)
-	}
-	defer rows.Close()
-
-	var specs []models.AgentSpec
-	for rows.Next() {
-		var spec models.AgentSpec
-		var capBytes, metaBytes []byte
-		if err := rows.Scan(
-			&spec.AgentID,
-			&spec.DisplayName,
-			&spec.AgentType,
-			&capBytes,
-			&metaBytes,
-			&spec.LastSyncTimestamp,
-			&spec.LastSyncAt,
-			&spec.LastHeartbeat,
-			&spec.HealthScore,
-			&spec.CreatedAt,
-			&spec.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan agent row: %w", err)
-		}
-		if len(capBytes) > 0 {
-			_ = json.Unmarshal(capBytes, &spec.Capabilities)
-		}
-		if len(metaBytes) > 0 {
-			_ = json.Unmarshal(metaBytes, &spec.Metadata)
-		}
-		specs = append(specs, spec)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list agents: %w", err)
-	}
-	return specs, nil
-}
-
-// Count returns the total number of registered agents.
-func (s *AgentStore) Count(ctx context.Context) (int, error) {
-	query := `SELECT COUNT(*) FROM agents`
-	var count int
-	err := s.pool.QueryRow(ctx, query).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count agents: %w", err)
-	}
-	return count, nil
 }
