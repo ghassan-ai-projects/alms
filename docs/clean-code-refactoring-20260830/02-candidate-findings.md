@@ -49,3 +49,11 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: preserve upsert fields, `RowsAffected()` not-found handling, parameterized filter values, pagination defaults, and created-at ordering.
 - `Out of scope`: deterministic pagination tie-breakers, strict list decode errors, typed filters, payload-size validation, and compile-time interface assertions.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/store/protocol_store.go`
+
+- `Fact`: the 180-line file was cohesive but duplicated query execution helpers and embedded row mapping in collection.
+- `Change`: consolidated the query helpers into `loadProtocols` and extracted `scanProtocolRow`; removed an obsolete placeholder.
+- `Behavior risk`: preserve empty-cursor delegation, active/global filters, descending ordering, inactive protocol listing, parameterization, and wrapped not-found errors.
+- `Out of scope`: deterministic protocol cursors, snapshot semantics, lifecycle operations, tag normalization, nil-pool validation, and compile-time assertions.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

@@ -59,3 +59,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; resulting production store files are at or below 250 lines.
 - Behavior note: No schema or service-interface changes were introduced.
+
+### `internal/store/protocol_store.go`
+
+- Candidate review: The bounded review found duplicate query executors, responsibility density in `PullSince`, and row mapping embedded in collection.
+- Change or disposition: Consolidated `queryProtocols` and `queryProtocolsArgs` into variadic `loadProtocols`, extracted `scanProtocolRow`, and removed the obsolete placeholder comment.
+- Review/fix: Preserved direct `PullSince` delegation for an empty cursor, active/global filters, descending ordering, list inclusion of inactive protocols, parameterization, row-close/error handling, and `%w` not-found wrapping. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; file remains cohesive and is 166 lines after cleanup.
+- Behavior note: No protocol lifecycle, schema, or service-interface behavior was changed.
