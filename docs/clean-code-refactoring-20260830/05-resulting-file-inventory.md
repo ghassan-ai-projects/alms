@@ -32,6 +32,7 @@ This inventory is generated from the final non-test Go file set. Every row has b
 | `internal/server/learning_search_tool.go` | 64 | Refactored | `8c83674` |
 | `internal/server/learning_store_tool.go` | 66 | Refactored | `8c83674` |
 | `internal/server/learning_sync_tools.go` | 79 | Refactored | `8c83674` |
+| `internal/server/legacy_tool_registrations.go` | 35 | Refactored | `0130693` |
 | `internal/server/middleware.go` | 43 | Refactored | `8b8d835` |
 | `internal/server/okf_tools.go` | 44 | Refactored | `8c83674` |
 | `internal/server/protocol_management_tools.go` | 65 | Refactored | `8c83674` |

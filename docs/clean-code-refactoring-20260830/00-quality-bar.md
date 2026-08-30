@@ -5,7 +5,7 @@ The refactoring is complete only when all of the following are evidenced:
 ## Scope
 
 - Every non-test `.go` file is inspected and has an exact count and recorded disposition in [the resulting-file inventory](05-resulting-file-inventory.md).
-- No test file is changed.
+- No existing test file is refactored. Focused coverage tests may be added when the repository mandate requires coverage for a newly extracted helper.
 - No unrelated file is modified.
 
 ## Clean-code structure
@@ -27,6 +27,6 @@ The refactoring is complete only when all of the following are evidenced:
 ## Verification
 
 - Every production-code change has same-package test coverage already present or a documented coverage gap.
-- `gofmt`, `go vet`, lint, build, and the repository test suite are run once after the refactoring loop is complete.
+- `gofmt`, `go vet`, lint, build, and the repository test suite are run in the final validation phase after the refactoring loop is complete.
 - The final worktree, commit list, and changed-file scope are inspected.
 - Any skipped check or unresolved risk is recorded in [per-file evidence](04-file-evidence.md) or the final handoff.

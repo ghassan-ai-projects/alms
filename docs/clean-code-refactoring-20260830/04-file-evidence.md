@@ -28,8 +28,8 @@ For split files, also record the resulting file names and line counts, and verif
 
 - Candidate review: The bounded review found mixed registration, request parsing, service calls, validation, and response shaping across eight workflows in one 554-line file.
 - Change or disposition: Kept `tools.go` as orchestration only. Split agent registrations into focused tool files; split learning record registration from sync; separated protocol sync/management, health, enrichment, OKF export, and result marshaling. Renamed private registration functions to state intent.
-- Review/fix: Preserved registration order, MCP names/descriptions/schemas, service error-result behavior, sync defaults, search status handling, health timeout, and existing ignored type assertions. Restored unrelated formatting-only drift in `server.go`. Ran `gofmt` on changed server files and `git diff --check`; tests deferred by request.
-- Commit: `8c83674` (`refactor: split MCP tool registrations by domain`).
+- Review/fix: Preserved registration order, MCP names/descriptions/schemas, service error-result behavior, sync defaults, search status handling, health timeout, and existing ignored type assertions. Restored unrelated formatting-only drift in `server.go`. The final vet pass caught package-private test callers of the former helper names; added compatibility aliases without changing the production registration path. Ran `gofmt` on changed server files and `git diff --check`; tests remain the final gate.
+- Commit: `8c83674` (`refactor: split MCP tool registrations by domain`), followed by `0130693` (`fix: preserve internal tool registration aliases`).
 - Bar result: Met for this file loop; all changed production server files are at or below 250 lines.
 - Behavior note: No transport validation policy or service behavior was changed.
 

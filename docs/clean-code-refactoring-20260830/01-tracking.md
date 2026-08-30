@@ -6,10 +6,12 @@ Hard constraint: no production `.go` file may exceed 250 lines after the task. A
 
 Tests remain deferred until every production file has reached a terminal status.
 
+The final validation phase below supersedes the per-loop `tests deferred` notes.
+
 | Order | File | Lines | Status | Commit | Notes |
 |---:|---|---:|---|---|---|
 | 1 | `internal/service/storemock/mock.go` | 694 | bar_met | `49ad345` | Split into six cohesive files; resulting max is 163 lines; tests deferred. |
-| 2 | `internal/server/tools.go` | 554 | bar_met | `8c83674` | Split into domain and focused tool-registration files; max changed file 79 lines; tests deferred. |
+| 2 | `internal/server/tools.go` | 554 | bar_met | `8c83674`, `0130693` | Split into domain and focused tool-registration files; restored package-private compatibility aliases; max resulting file 79 lines; tests deferred. |
 | 3 | `internal/store/learning_store.go` | 439 | bar_met | `e353800` | Split into CRUD, sync, search, mutation, and row-scanning files; max changed file 142 lines; tests deferred. |
 | 4 | `internal/service/okf.go` | 325 | bar_met | `eaec891` | Split into export, options, document, index, and helper files; max changed file 104 lines; tests deferred. |
 | 5 | `internal/store/agent_store.go` | 275 | bar_met | `759d8a0` | Split into mutation, query, and encoding files; max changed file 176 lines; tests deferred. |
@@ -35,3 +37,13 @@ Tests remain deferred until every production file has reached a terminal status.
 | 25 | `tools.go` | 8 | bar_met | `2a8cd08` | Retained tool dependency anchor and removed stale unused import caught by final build; file is 5 lines; tests deferred. |
 
 Files with no justified refactor will be marked `inspected` with evidence rather than changed for change's sake.
+
+## Final validation
+
+- `gofmt -l` over all non-test Go files: passed with no output.
+- `make build`: passed. The sandbox emitted a module stat-cache permission warning; it did not affect the successful build.
+- `make vet`: passed after restoring the package-private registration aliases used by same-package tests.
+- `make lint`: passed with `0 issues`; the sandbox emitted golangci-lint cache-write warnings.
+- `make test`: passed with race detection, shuffled execution, and coverage. Final package coverage: `cmd/alms` 24.2%, `internal/config` 92.6%, `internal/models` 100.0%, `internal/server` 62.0%, `internal/service` 79.0%, `internal/service/storemock` 20.1%, `internal/store` 8.4%; total 46.7%.
+- Scope check: 80 non-test Go files are documented in `05-resulting-file-inventory.md`; no file exceeds 250 lines; no existing test file was refactored. Two focused coverage test files were added for newly extracted runtime/storemock wiring.
+- Residual coverage gap: `internal/store` remains below the repository’s 60% layer target; improving that would require broader test work outside this refactor’s requested scope.
