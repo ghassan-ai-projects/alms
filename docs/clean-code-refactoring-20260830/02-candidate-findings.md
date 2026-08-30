@@ -132,3 +132,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Do not replace `strings.TrimSpace`, normalize stored titles, or change the `ErrValidation` sentinel.
 - `Out of scope`: Body/tag/version/activity validation, constructor changes, store validation, and API changes.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/server/middleware.go`
+
+- `Fact`: The middleware has three clear control-flow paths, but the unauthorized JSON-RPC response construction was embedded in the main branch.
+- `Proposal`: Extract a private unauthorized-response writer and leave the middleware’s routing/auth decisions intact.
+- `Behavior risk`: Preserve empty-token bypass, `X-ALMS-TOKEN`, method independence, HTTP 200, error code `-32001`, message `unauthorized`, JSON shape, and MCP-only application scope.
+- `Out of scope`: Auth scheme redesign, constant-time comparison, token rotation, TLS, dashboard protection, and status-code changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

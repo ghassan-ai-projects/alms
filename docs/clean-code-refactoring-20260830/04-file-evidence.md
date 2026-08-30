@@ -152,3 +152,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; file remains 33 lines.
 - `Behavior note`: No new protocol validation rules were introduced.
+### `internal/server/middleware.go`
+
+- `Candidate review`: The bounded review found a focused middleware with response construction embedded in the unauthorized branch.
+- `Change or disposition`: Extracted `writeUnauthorizedResponse` while leaving `AuthMiddleware` control flow and its public signature unchanged.
+- `Review/fix`: Preserved empty-token bypass, header, status, JSON-RPC error code/message/shape, and MCP-only scope. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; file is 41 lines.
+- `Behavior note`: Authentication policy and response status were not changed.
