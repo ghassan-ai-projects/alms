@@ -97,3 +97,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve registration order, URI/name/description/MIME metadata, list limits, error prefixes, health degraded output, and the manually maintained tool catalog.
 - `Out of scope`: Protocol-resource pagination, health failure diagnostics/version injection, catalog drift detection, authorization policy changes, and exposure reduction for full resource payloads.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/service/sync.go`
+
+- `Fact`: Learning sync, gap-safe acknowledgment, and protocol pulling were combined in one 122-line service file; the two protocol methods also repeated agent-tag loading.
+- `Proposal`: Keep the `Syncer` type and learning delegation in `sync.go`, isolate acknowledgments and protocol pulls, and extract ordered missing-ID detection plus shared agent-tag loading.
+- `Behavior risk`: Preserve the 2020-01-01 UTC default cursor, early empty-expected-ID return, original acknowledgment slice, missing-ID order, nil tag behavior, store call order, and all error prefixes/wrapping.
+- `Out of scope`: Gap semantics, cursor atomicity, interface decomposition, protocol cursor semantics, and MCP schema changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

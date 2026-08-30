@@ -112,3 +112,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; resulting production server files are 34, 27, 32, 27, 42, and 27 lines.
 - `Behavior note`: Resource pagination, health diagnostics, catalog drift detection, authorization policy, and payload exposure remain ideas only.
+### `internal/service/sync.go`
+
+- `Candidate review`: The bounded review found learning sync, acknowledgment, and protocol pulling combined in one 122-line file, with repeated agent-tag retrieval.
+- `Change or disposition`: Kept the `Syncer` type and learning delegation in `sync.go`; moved acknowledgment workflow to `sync_ack.go` and protocol pulls to `protocol_sync.go`; extracted `findMissingLearningIDs` and `loadAgentTags`.
+- `Review/fix`: Preserved the default cursor, early empty-expected-ID return, missing-ID order, original acknowledgment slice, nil tags, store call sequence, and wrapped errors. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; resulting production service files are 35, 57, and 45 lines.
+- `Behavior note`: Cursor atomicity and equal-timestamp protocol semantics remain ideas only.
