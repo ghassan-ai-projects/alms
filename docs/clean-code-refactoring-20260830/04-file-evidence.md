@@ -120,3 +120,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; resulting production service files are 35, 57, and 45 lines.
 - `Behavior note`: Cursor atomicity and equal-timestamp protocol semantics remain ideas only.
+### `internal/config/config.go`
+
+- `Candidate review`: The bounded review found `Load` mixing defaults, file selection, YAML parsing, warnings, and environment overrides.
+- `Change or disposition`: Kept public configuration types and `Load` orchestration in `config.go`; moved file path selection/parsing to `config_files.go` and environment application to `config_env.go`.
+- `Review/fix`: Preserved default-seeded YAML unmarshalling, explicit-path behavior, first-readable-file precedence, warning output, silent read failures, and non-empty environment overrides. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; resulting production config files are 80, 41, and 12 lines.
+- `Behavior note`: No configuration values, precedence, diagnostics, or startup behavior changed.

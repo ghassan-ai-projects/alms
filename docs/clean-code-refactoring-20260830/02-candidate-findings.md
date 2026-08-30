@@ -104,3 +104,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve the 2020-01-01 UTC default cursor, early empty-expected-ID return, original acknowledgment slice, missing-ID order, nil tag behavior, store call order, and all error prefixes/wrapping.
 - `Out of scope`: Gap semantics, cursor atomicity, interface decomposition, protocol cursor semantics, and MCP schema changes.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/config/config.go`
+
+- `Fact`: `Load` combined defaults, explicit/implicit file selection, YAML parsing, warnings, and environment overrides in one 101-line file.
+- `Proposal`: Keep the public configuration types and `Load` orchestration together; isolate file discovery/parsing and environment overlay helpers.
+- `Behavior risk`: Preserve default-seeded unmarshalling, explicit-path behavior, first-readable candidate precedence even after parse failure, silent read failures, warning destination/text, and only-non-empty environment overrides. Preserve `Addr` formatting.
+- `Out of scope`: Config validation, default changes, environment names, precedence policy, diagnostics policy, and migration/startup behavior.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

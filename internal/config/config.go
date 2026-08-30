@@ -4,10 +4,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"gopkg.in/yaml.v3"
 )
 
 // ServerConfig holds HTTP server settings.
@@ -74,28 +70,11 @@ func Load(cfgPath string) Config {
 	cfg := DefaultConfig()
 
 	if cfgPath != "" {
-		if data, err := os.ReadFile(cfgPath); err == nil {
-			if err := yaml.Unmarshal(data, &cfg); err != nil {
-				fmt.Fprintf(os.Stderr, "warning: failed to parse config %s: %v\n", cfgPath, err)
-			}
-		}
+		loadConfigFile(&cfg, cfgPath)
 	} else {
-		for _, path := range configFilePaths() {
-			if data, err := os.ReadFile(path); err == nil {
-				if err := yaml.Unmarshal(data, &cfg); err != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to parse config %s: %v\n", path, err)
-				}
-				break
-			}
-		}
+		loadFirstAvailableConfig(&cfg)
 	}
 
-	if dsn := os.Getenv("ALMS_PG_DSN"); dsn != "" {
-		cfg.Database.DSN = dsn
-	}
-	if token := os.Getenv("ALMS_AUTH_TOKEN"); token != "" {
-		cfg.Auth.Token = token
-	}
-
+	applyEnvironmentOverrides(&cfg)
 	return cfg
 }
