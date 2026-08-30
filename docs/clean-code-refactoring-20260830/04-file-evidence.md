@@ -227,7 +227,7 @@ For split files, also record the resulting file names and line counts, and verif
 
 - `Candidate review`: The bounded review found an idiomatic build-tagged blank-import tool anchor.
 - `Change or disposition`: Inspected without code changes; no runtime clean-code refactor is justified.
-- `Review/fix`: Verified the build tag and tool dependency imports; tests deferred by request.
-- `Commit`: None; inspection only.
-- `Bar result`: Inspected; file is 8 lines and cohesive.
+- `Review/fix`: Verified the build tag and tool dependency imports. The final build caught an unused stale MCP server import left after the registration split; removed it and reran the build successfully. Tests remained deferred until the final test gate.
+- `Commit`: `2a8cd08` (`fix: remove stale MCP tool import`).
+- `Bar result`: Met; file is 5 lines and cohesive.
 - `Behavior note`: Tool dependency retention behavior remains unchanged.

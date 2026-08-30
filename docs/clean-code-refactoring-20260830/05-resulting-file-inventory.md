@@ -82,7 +82,7 @@ This inventory is generated from the final non-test Go file set. Every row has b
 | `internal/store/learning_store_sync.go` | 142 | Refactored | `e353800` |
 | `internal/store/postgres.go` | 37 | Inspected unchanged | — |
 | `internal/store/protocol_store.go` | 169 | Refactored | `4d79cf8` |
-| `tools.go` | 8 | Inspected unchanged | — |
+| `tools.go` | 5 | Refactored | `2a8cd08` |
 
 Verification command used for this inventory:
 

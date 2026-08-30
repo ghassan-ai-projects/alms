@@ -32,6 +32,6 @@ Tests remain deferred until every production file has reached a terminal status.
 | 22 | `internal/models/protocol.go` | 33 | bar_met | `429d7e0` | Simplified single-rule validation; file is 28 lines; tests deferred. |
 | 23 | `internal/server/dashboard.go` | 22 | inspected | — | Cohesive static-page handler; no behavior-preserving refactor justified; tests deferred. |
 | 24 | `internal/models/errors.go` | 18 | inspected | — | Cohesive sentinel definitions; no behavior-preserving refactor justified; tests deferred. |
-| 25 | `tools.go` | 8 | inspected | — | Idiomatic tool dependency anchor; no behavior-preserving refactor justified; tests deferred. |
+| 25 | `tools.go` | 8 | bar_met | `2a8cd08` | Retained tool dependency anchor and removed stale unused import caught by final build; file is 5 lines; tests deferred. |
 
 Files with no justified refactor will be marked `inspected` with evidence rather than changed for change's sake.
