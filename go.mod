@@ -1,6 +1,6 @@
 module github.com/ghassan/alms
 
-go 1.25.12
+go 1.25.13
 
 require (
 	github.com/jackc/pgx/v5 v5.9.2
