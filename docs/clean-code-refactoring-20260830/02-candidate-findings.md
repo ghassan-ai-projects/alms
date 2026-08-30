@@ -65,3 +65,12 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: preserve validation-before-defaults, score/TTL/resolution/severity defaults, timestamp assignment, partial-success supersession, exact/near dedup short-circuits, score precedence, and error wrapping.
 - `Out of scope`: transactional creation/supersession, injected clocks, score validation, atomic enrichment/score updates, object-only patch validation, database-backed dedup, and separate service types.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/gc.go`
+
+- `Fact`: the 201-line file mixed background lifecycle, sweep policy, soft deletion, and best-effort decay arithmetic.
+- `Change`: split lifecycle, sweep, and decay responsibilities; extracted named helpers for loop ownership, record processing, and TTL eligibility.
+- `Behavior risk`: preserve pinned precedence, deletion threshold, partial-result errors, best-effort decay updates, and current shutdown/restart behavior.
+- `Evidence gap`: PostgreSQL `Search` may not treat an empty query as “all records”; this is a separate behavior concern and was not changed.
+- `Out of scope`: interval validation, idempotent/restart-safe shutdown, explicit all-active store operation, pagination beyond 10,000 records, decay error observability, and audit metrics.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

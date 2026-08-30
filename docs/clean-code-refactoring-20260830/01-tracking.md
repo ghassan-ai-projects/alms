@@ -14,9 +14,9 @@ Tests remain deferred until every production file has reached a terminal status.
 | 4 | `internal/service/okf.go` | 325 | bar_met | `eaec891` | Split into export, options, document, index, and helper files; max changed file 104 lines; tests deferred. |
 | 5 | `internal/store/agent_store.go` | 275 | bar_met | `759d8a0` | Split into mutation, query, and encoding files; max changed file 176 lines; tests deferred. |
 | 6 | `internal/service/learning.go` | 214 | reviewed | — | Split learning lifecycle, dedup, enrichment, and protocol responsibilities; tests deferred. |
-| 7 | `internal/service/gc.go` | 201 | queued | — | — |
+| 7 | `internal/service/gc.go` | 201 | reviewed | — | Split lifecycle, sweep policy, and decay responsibilities; tests deferred. |
 | 8 | `internal/service/dedup.go` | 201 | queued | — | — |
-| 9 | `internal/store/protocol_store.go` | 180 | reviewed | — | Consolidated query execution and isolated row scanning; tests deferred. |
+| 9 | `internal/store/protocol_store.go` | 180 | bar_met | `4d79cf8` | Consolidated query execution and isolated row scanning; final file 166 lines; tests deferred. |
 | 10 | `internal/service/scoring.go` | 167 | queued | — | — |
 | 11 | `internal/server/resources.go` | 164 | queued | — | — |
 | 12 | `internal/models/learning.go` | 134 | queued | — | — |

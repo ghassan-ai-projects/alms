@@ -77,3 +77,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; resulting production service files are at or below 250 lines.
 - Behavior note: No public service method name or store interface changed.
+
+### `internal/service/gc.go`
+
+- Candidate review: The bounded review found lifecycle management, sweep policy, deletion, and best-effort decay arithmetic mixed in one 201-line file. It also identified a separate production risk where an empty full-text query may make PostgreSQL GC ineffective.
+- Change or disposition: Split lifecycle into `gc.go`, sweep orchestration/policy into `gc_sweep.go`, and best-effort decay into `gc_decay.go`. Extracted `claimRunning`, `runBackgroundLoop`, `processSweepRecord`, and `isTTLExpired`.
+- Review/fix: Preserved disabled behavior, start/stop lifecycle behavior, ticker flow, pinned precedence, TTL/deletion threshold, partial results on deletion failure, score-changed counting, and ignored decay-update errors. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; all resulting production service files are at or below 250 lines.
+- Behavior note: The empty-query PostgreSQL GC concern, restart-safe shutdown, interval validation, pagination, and observability remain ideas only.
