@@ -139,3 +139,66 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve empty-token bypass, `X-ALMS-TOKEN`, method independence, HTTP 200, error code `-32001`, message `unauthorized`, JSON shape, and MCP-only application scope.
 - `Out of scope`: Auth scheme redesign, constant-time comparison, token rotation, TLS, dashboard protection, and status-code changes.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/models/learning.go`
+
+- `Fact`: The file is a cohesive cross-layer learning model containing enums, JSON shape, metadata defaults, normalization, and validation in 134 lines.
+- `Disposition`: No refactor is justified without changing a shared contract. Preserve exported symbols, JSON tags, validation order, raw metadata preservation, and store-level normalization.
+- `Behavior risk`: Moving defaults only to the service, trimming titles, parsing/copying metadata, or replacing exported mutable valid-value maps would change behavior or package contract.
+- `Out of scope`: Service defaulting, persistence/schema behavior, deduplication, supersession, and API handling.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/registry.go`
+
+- `Fact`: The file is a small agent-lifecycle façade over `AgentStore`; its public methods are already intent-named and focused enough.
+- `Disposition`: Inspect only; do not extract helpers or alter the lookup/create/update flow.
+- `Behavior risk`: The current ignored lookup errors, validation-before-ID assignment, two timestamp calls, and caller-visible registration response are observable behavior.
+- `Out of scope`: Fixing lookup/create races, registration response data, validation policy, and service contract changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/models/agent.go`
+
+- `Fact`: The file is a cohesive agent data contract plus one focused validator in 81 lines.
+- `Disposition`: Inspect only; a constant extraction would add little value and the exported valid-type map is part of the package contract.
+- `Behavior risk`: Preserve validation order, exact messages, byte-based ID length, whitespace behavior, embedded fields, and JSON tags.
+- `Out of scope`: Agent ID contract changes, server behavior, persistence validation, and mutable-map redesign.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/interfaces.go`
+
+- `Fact`: The file groups the three store boundaries used by service code and is 46 lines; each interface is internally cohesive.
+- `Disposition`: Inspect only. Interface segregation is a worthwhile follow-up, but changing constructor types and mock requirements is a broader contract migration than this refactor.
+- `Behavior risk`: Narrowing interfaces can break indirect Learning/Dedup dependencies and mocks even when runtime behavior is unchanged.
+- `Out of scope`: Interface decomposition, concrete store changes, mock behavior, and API changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/store/postgres.go`
+
+- `Fact`: `NewPool` has one cohesive responsibility: parse the DSN, apply pool policy, connect, ping, and clean up on ping failure.
+- `Disposition`: Inspect only; the 37-line function is already linear and readable.
+- `Behavior risk`: Preserve ping readiness, explicit pool settings, assignment order, context use, and cleanup behavior.
+- `Out of scope`: Pool sizing, runtime configurability, shutdown ownership, and migration-mode behavior.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/server/dashboard.go`
+
+- `Fact`: The file embeds and serves one static page through one focused handler in 22 lines.
+- `Disposition`: Inspect only; extracting the closure would not materially improve ownership.
+- `Behavior risk`: Preserve the exact path guard, all-method 200 behavior, content type, public route, and ignored write errors.
+- `Out of scope`: Dashboard authentication, headers, HTML, and static asset/product changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/models/errors.go`
+
+- `Fact`: The file contains four cohesive exported sentinel errors in 18 lines.
+- `Disposition`: Inspect only; the current grouping is idiomatic and changing it risks sentinel identity.
+- `Behavior risk`: Preserve names, messages, identity, and `%w` wrapping used by callers and API error classification.
+- `Out of scope`: Error taxonomy redesign, serialization, and persistence behavior.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `tools.go`
+
+- `Fact`: The build-tagged file is an idiomatic tool-dependency anchor with no runtime logic in 8 lines.
+- `Disposition`: Inspect only; no clean-code change is justified.
+- `Behavior risk`: Preserve the build tag and blank imports so tool dependencies remain retained by module tooling.
+- `Out of scope`: Makefile/tool installation modernization and command-resolution consistency.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

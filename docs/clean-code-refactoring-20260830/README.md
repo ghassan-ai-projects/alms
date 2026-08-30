@@ -30,3 +30,4 @@ Tests are intentionally deferred until all implementation and review loops are c
 - [Candidate findings](02-candidate-findings.md)
 - [Improvement ideas](03-improvement-ideas.md)
 - [Per-file evidence](04-file-evidence.md)
+- [Resulting production-file inventory](05-resulting-file-inventory.md)

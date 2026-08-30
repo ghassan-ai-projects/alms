@@ -4,7 +4,7 @@ The refactoring is complete only when all of the following are evidenced:
 
 ## Scope
 
-- Every non-test `.go` file is inspected and has a recorded disposition.
+- Every non-test `.go` file is inspected and has an exact count and recorded disposition in [the resulting-file inventory](05-resulting-file-inventory.md).
 - No test file is changed.
 - No unrelated file is modified.
 
