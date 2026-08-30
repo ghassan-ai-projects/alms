@@ -20,20 +20,24 @@ func AuthMiddleware(token string) func(http.Handler) http.Handler {
 
 			got := r.Header.Get("X-ALMS-TOKEN")
 			if got != token {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK) // MCP responses are always 200
-				resp := map[string]any{
-					"jsonrpc": "2.0",
-					"error": map[string]any{
-						"code":    -32001,
-						"message": "unauthorized",
-					},
-				}
-				_ = json.NewEncoder(w).Encode(resp)
+				writeUnauthorizedResponse(w)
 				return
 			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func writeUnauthorizedResponse(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // MCP responses are always 200
+	response := map[string]any{
+		"jsonrpc": "2.0",
+		"error": map[string]any{
+			"code":    -32001,
+			"message": "unauthorized",
+		},
+	}
+	_ = json.NewEncoder(w).Encode(response)
 }

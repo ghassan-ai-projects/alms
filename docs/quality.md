@@ -138,31 +138,13 @@ func TestGapSafeSyncAck(t *testing.T) {
 
 ## CI Pipeline
 
-```yaml
-name: ci
-on: [push, pull_request]
-jobs:
-  ci:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env: { POSTGRES_DB: alms_test, POSTGRES_USER: alms, POSTGRES_PASSWORD: alms }
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: { go-version: "1.22" }
-      - run: go mod tidy && git diff --exit-code go.mod go.sum
-      - run: make lint-ci
-      - run: make deadcode
-      - run: make ci-check
-        env: { ALMS_PG_DSN: "postgres://alms:alms@localhost:5432/alms_test?sslmode=disable" }
-```
+The canonical workflow is [.github/workflows/ci.yml](../.github/workflows/ci.yml).
+It runs one PostgreSQL-backed job for pull requests targeting `main` and pushes
+to `main`. The job performs tidy, build, vet, lint, race-enabled short tests,
+deadcode, and vulnerability checks. Developer tools and linter analysis are
+cached; superseded runs are cancelled; and a 20-minute timeout limits runaway
+spend. Linux cross-compilation and artifact upload run only after a push to
+`main`, not for every pull-request update.
 
 ---
 

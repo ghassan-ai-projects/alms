@@ -85,7 +85,7 @@ func (s *ProtocolStore) Pull(ctx context.Context, agentTags []string) ([]models.
 		  AND (target_tags && $1 OR target_tags = '{}')
 		ORDER BY created_at DESC
 	`
-	return s.queryProtocols(ctx, query, agentTags)
+	return s.loadProtocols(ctx, query, agentTags)
 }
 
 // PullSince returns protocols matching the given agent tags that were created
@@ -114,8 +114,7 @@ func (s *ProtocolStore) PullSince(ctx context.Context, agentTags []string, since
 		  AND created_at > $2
 		ORDER BY created_at DESC
 	`
-	args := []any{agentTags, since}
-	return s.queryProtocolsArgs(ctx, query, args)
+	return s.loadProtocols(ctx, query, agentTags, since)
 }
 
 // List returns all protocol records ordered by creation time descending.
@@ -125,25 +124,10 @@ func (s *ProtocolStore) List(ctx context.Context) ([]models.ProtocolRecord, erro
 		FROM protocols
 		ORDER BY created_at DESC
 	`
-	return s.queryProtocols(ctx, query, nil)
+	return s.loadProtocols(ctx, query)
 }
 
-func (s *ProtocolStore) queryProtocols(ctx context.Context, query string, tagArg any) ([]models.ProtocolRecord, error) {
-	var rows pgx.Rows
-	var err error
-	if tagArg != nil {
-		rows, err = s.pool.Query(ctx, query, tagArg)
-	} else {
-		rows, err = s.pool.Query(ctx, query)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("query protocols: %w", err)
-	}
-	defer rows.Close()
-	return scanProtocols(rows)
-}
-
-func (s *ProtocolStore) queryProtocolsArgs(ctx context.Context, query string, args []any) ([]models.ProtocolRecord, error) {
+func (s *ProtocolStore) loadProtocols(ctx context.Context, query string, args ...any) ([]models.ProtocolRecord, error) {
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query protocols: %w", err)
@@ -151,25 +135,14 @@ func (s *ProtocolStore) queryProtocolsArgs(ctx context.Context, query string, ar
 	defer rows.Close()
 	return scanProtocols(rows)
 }
-
 func scanProtocols(rows pgx.Rows) ([]models.ProtocolRecord, error) {
 	var records []models.ProtocolRecord
 	for rows.Next() {
-		var rec models.ProtocolRecord
-		if err := rows.Scan(
-			&rec.ProtocolID,
-			&rec.Title,
-			&rec.Body,
-			&rec.TargetTags,
-			&rec.Version,
-			&rec.Author,
-			&rec.IsActive,
-			&rec.CreatedAt,
-			&rec.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan protocol row: %w", err)
+		record, err := scanProtocolRow(rows)
+		if err != nil {
+			return nil, err
 		}
-		records = append(records, rec)
+		records = append(records, record)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("scan protocols: %w", err)
@@ -177,4 +150,20 @@ func scanProtocols(rows pgx.Rows) ([]models.ProtocolRecord, error) {
 	return records, nil
 }
 
-// Keep import
+func scanProtocolRow(rows pgx.Rows) (models.ProtocolRecord, error) {
+	var record models.ProtocolRecord
+	if err := rows.Scan(
+		&record.ProtocolID,
+		&record.Title,
+		&record.Body,
+		&record.TargetTags,
+		&record.Version,
+		&record.Author,
+		&record.IsActive,
+		&record.CreatedAt,
+		&record.UpdatedAt,
+	); err != nil {
+		return models.ProtocolRecord{}, fmt.Errorf("scan protocol row: %w", err)
+	}
+	return record, nil
+}

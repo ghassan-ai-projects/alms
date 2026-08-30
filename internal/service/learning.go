@@ -31,6 +31,19 @@ func (l *Learning) Store(ctx context.Context, record models.LearningRecord, supe
 		return "", fmt.Errorf("store learning: %w", err)
 	}
 
+	record = prepareLearningRecord(record)
+	id, err := l.lStore.Create(ctx, record)
+	if err != nil {
+		return "", fmt.Errorf("store learning: %w", err)
+	}
+
+	if err := l.handleLearningSupersession(ctx, id, supersedes); err != nil {
+		return id, fmt.Errorf("store learning supersession: %w", err)
+	}
+	return id, nil
+}
+
+func prepareLearningRecord(record models.LearningRecord) models.LearningRecord {
 	if record.Score == 0 {
 		record.Score = 0.5
 	}
@@ -44,59 +57,16 @@ func (l *Learning) Store(ctx context.Context, record models.LearningRecord, supe
 		record.Severity = models.SeverityMedium
 	}
 	record.EnrichmentMetadata = models.NormalizeEnrichmentMetadata(record.EnrichmentMetadata)
-
 	record.CreatedAt = time.Now()
-
-	id, err := l.lStore.Create(ctx, record)
-	if err != nil {
-		return "", fmt.Errorf("store learning: %w", err)
-	}
-
-	// Handle supersession
-	if supersedes != "" {
-		dedup := NewDedupEngine(l.lStore)
-		if err := dedup.HandleSupersession(ctx, id, supersedes); err != nil {
-			return id, fmt.Errorf("store learning supersession: %w", err)
-		}
-	}
-
-	return id, nil
+	return record
 }
 
-// StoreLearningWithDedup stores a learning after checking for exact and near duplicates.
-// Returns the result including any dedup findings.
-func (l *Learning) StoreLearningWithDedup(ctx context.Context, record models.LearningRecord, supersedes string) (string, *DedupResult, error) {
+func (l *Learning) handleLearningSupersession(ctx context.Context, learningID, supersedesID string) error {
+	if supersedesID == "" {
+		return nil
+	}
 	dedup := NewDedupEngine(l.lStore)
-
-	// Check exact dup first
-	exactResult, err := dedup.CheckExactDup(ctx, record.Title, record.Body)
-	if err != nil {
-		return "", nil, fmt.Errorf("dedup check: %w", err)
-	}
-	if exactResult.IsExactDup {
-		return exactResult.ExactMatchID, exactResult, nil
-	}
-
-	// Check near dup
-	nearResult, err := dedup.CheckNearDup(ctx, record.Title, nil)
-	if err != nil {
-		return "", nil, fmt.Errorf("near dedup check: %w", err)
-	}
-	if nearResult.IsNearDup {
-		// Store the learning but flag it
-		id, err := l.Store(ctx, record, supersedes)
-		if err != nil {
-			return "", nil, err
-		}
-		return id, nearResult, nil
-	}
-
-	id, err := l.Store(ctx, record, supersedes)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return id, &DedupResult{}, nil
+	return dedup.HandleSupersession(ctx, learningID, supersedesID)
 }
 
 // Search performs full-text search on learnings.
@@ -121,55 +91,31 @@ func (l *Learning) SearchAdvanced(ctx context.Context, query string, ltype strin
 // If the enrichment JSON contains a "quality_score" or "score" field,
 // the top-level score column is also updated in the same call.
 func (l *Learning) UpdateEnrichment(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
-	if learningID == "" {
-		return fmt.Errorf("%w: learning_id is required", models.ErrValidation)
+	if err := validateLearningID(learningID); err != nil {
+		return err
 	}
 	if err := l.lStore.UpdateEnrichment(ctx, learningID, enrichmentJSON); err != nil {
 		return fmt.Errorf("update enrichment: %w", err)
 	}
+	return l.synchronizeEnrichmentScore(ctx, learningID, enrichmentJSON)
+}
 
-	// Extract score from enrichment metadata and sync to top-level score column
-	if score, err := extractScoreFromEnrichment(enrichmentJSON); err == nil {
-		// err != nil means the field is missing or not a float — that's fine, skip score update
-		if err := l.lStore.UpdateScore(ctx, learningID, score); err != nil {
-			return fmt.Errorf("sync score from enrichment: %w", err)
-		}
+func validateLearningID(learningID string) error {
+	if learningID == "" {
+		return fmt.Errorf("%w: learning_id is required", models.ErrValidation)
 	}
-
 	return nil
 }
 
-// extractScoreFromEnrichment extracts "quality_score" or "score" (taking
-// quality_score first) from a JSON enrichment patch. Returns an error if
-// neither field is present or if the value is not a float64.
-func extractScoreFromEnrichment(data json.RawMessage) (float64, error) {
-	if len(data) == 0 {
-		return 0, fmt.Errorf("empty enrichment data")
+func (l *Learning) synchronizeEnrichmentScore(ctx context.Context, learningID string, enrichmentJSON json.RawMessage) error {
+	score, err := extractScoreFromEnrichment(enrichmentJSON)
+	if err != nil {
+		return nil
 	}
-	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
-		return 0, fmt.Errorf("parse enrichment: %w", err)
+	if err := l.lStore.UpdateScore(ctx, learningID, score); err != nil {
+		return fmt.Errorf("sync score from enrichment: %w", err)
 	}
-
-	// Try quality_score first (it's more specific)
-	if v, ok := m["quality_score"]; ok {
-		score, ok := v.(float64)
-		if !ok {
-			return 0, fmt.Errorf("quality_score is not a number")
-		}
-		return score, nil
-	}
-
-	// Fall back to score
-	if v, ok := m["score"]; ok {
-		score, ok := v.(float64)
-		if !ok {
-			return 0, fmt.Errorf("score is not a number")
-		}
-		return score, nil
-	}
-
-	return 0, fmt.Errorf("no score field in enrichment")
+	return nil
 }
 
 // Get retrieves a single learning record by ID.
@@ -183,32 +129,11 @@ func (l *Learning) Get(ctx context.Context, learningID string) (models.LearningR
 
 // Delete soft-deletes a learning record.
 func (l *Learning) Delete(ctx context.Context, learningID string) error {
-	if learningID == "" {
-		return fmt.Errorf("%w: learning_id is required", models.ErrValidation)
+	if err := validateLearningID(learningID); err != nil {
+		return err
 	}
 	if err := l.lStore.SoftDelete(ctx, learningID); err != nil {
 		return fmt.Errorf("delete learning: %w", err)
 	}
 	return nil
-}
-
-// ProtocolPush creates a new protocol record.
-func (l *Learning) ProtocolPush(ctx context.Context, record models.ProtocolRecord) (string, error) {
-	if err := record.Validate(); err != nil {
-		return "", fmt.Errorf("protocol push: %w", err)
-	}
-	id, err := l.pStore.Create(ctx, record)
-	if err != nil {
-		return "", fmt.Errorf("protocol push: %w", err)
-	}
-	return id, nil
-}
-
-// ProtocolList returns all protocol records.
-func (l *Learning) ProtocolList(ctx context.Context) ([]models.ProtocolRecord, error) {
-	protocols, err := l.pStore.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list protocols: %w", err)
-	}
-	return protocols, nil
 }
