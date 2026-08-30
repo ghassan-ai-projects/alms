@@ -1,10 +1,6 @@
 package server
 
-import (
-	"github.com/mark3labs/mcp-go/server"
-
-	"github.com/ghassan/alms/internal/service"
-)
+import "github.com/ghassan/alms/internal/service"
 
 // registerTools registers all MCP tool handlers on the server.
 func (s *Server) registerTools(registry *service.Registry, syncer *service.Syncer, learning *service.Learning) {
