@@ -90,3 +90,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve pinned precedence over deleted validation, exact error prefixes, asymmetric increment/decrement clamping, future-time decay clamping, non-positive TTL no-op behavior, the 10,000-record batch bound, and batch count semantics.
 - `Out of scope`: Injected clocks, atomic or optimistic score updates, NaN/Inf/negative-input validation, database-side score bounds, pagination beyond 10,000 records, revised changed/skipped counts, and decay observability.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/server/resources.go`
+
+- `Fact`: Five resource registrations mixed MCP metadata, service retrieval, health fallback, static catalog data, JSON encoding, and response shaping in one 164-line file.
+- `Proposal`: Keep registration orchestration and shared JSON response construction in `resources.go`, then isolate agent, health, learning, tool-catalog, and protocol registrations by domain.
+- `Behavior risk`: Preserve registration order, URI/name/description/MIME metadata, list limits, error prefixes, health degraded output, and the manually maintained tool catalog.
+- `Out of scope`: Protocol-resource pagination, health failure diagnostics/version injection, catalog drift detection, authorization policy changes, and exposure reduction for full resource payloads.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

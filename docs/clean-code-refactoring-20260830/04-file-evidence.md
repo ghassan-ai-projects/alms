@@ -100,6 +100,15 @@ For split files, also record the resulting file names and line counts, and verif
 - `Candidate review`: The bounded review found score adjustments, score reads, TTL decay, batch traversal, and arithmetic mixed in one 167-line service file.
 - `Change or disposition`: Kept engine construction and constants in `scoring.go`, moved adjustment workflows and shared adjustment helpers to `scoring_adjustments.go`, and moved single/batch decay plus arithmetic to `scoring_decay.go`.
 - `Review/fix`: Added the required models import after review caught the extracted deleted-record validation dependency. Preserved pinned/deleted precedence, clamping, future-time handling, non-positive TTL behavior, batch limit, and error wrapping. Ran `gofmt` and `git diff --check`; tests deferred by request.
-- `Commit`: Pending.
-- `Bar result`: Pending final status; resulting production service files are 25, 87, and 91 lines.
+- `Commit`: `cd04c6d` (`refactor: separate scoring workflows`).
+- `Bar result`: Met for this file loop; resulting production service files are 25, 87, and 91 lines.
 - `Behavior note`: Score atomicity, input validation, pagination, and observability remain ideas only.
+
+### `internal/server/resources.go`
+
+- `Candidate review`: The bounded review found five independent resource registrations mixed with JSON encoding and static catalog data in one 164-line server file.
+- `Change or disposition`: Kept `registerResources` and shared JSON response construction in `resources.go`; split agent, health, learning, tool-catalog, and protocol registrations into focused files.
+- `Review/fix`: Preserved registration order, resource metadata, retrieval limits, health fallback, tool catalog content, JSON MIME type, and error prefixes. Used explicit ignored request parameters in callbacks. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; resulting production server files are 34, 27, 32, 27, 42, and 27 lines.
+- `Behavior note`: Resource pagination, health diagnostics, catalog drift detection, authorization policy, and payload exposure remain ideas only.
