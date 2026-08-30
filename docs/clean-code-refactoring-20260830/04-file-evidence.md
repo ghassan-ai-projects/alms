@@ -86,3 +86,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; all resulting production service files are at or below 250 lines.
 - Behavior note: The empty-query PostgreSQL GC concern, restart-safe shutdown, interval validation, pagination, and observability remain ideas only.
+
+### `internal/service/dedup.go`
+
+- Candidate review: The bounded review found exact matching, near matching/ranking, Levenshtein mechanics, and supersession mixed in one 201-line file.
+- Change or disposition: Split shared engine/hash types into `dedup.go`, exact matching into `dedup_exact.go`, similarity/ranking into `dedup_near.go`, and supersession into `dedup_supersession.go`. Extracted intent-named private helpers while retaining public method names used by callers/tests.
+- Review/fix: Preserved bounded search limits, exact short-circuit behavior including empty match IDs, near-match exclusion/deleted handling, equal-ratio ordering behavior, byte-based similarity, and wrapped errors. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; all resulting production service files are at or below 250 lines.
+- Behavior note: Hash delimiters, Unicode similarity, deterministic tie-breaking, and atomic dedup remain ideas only.

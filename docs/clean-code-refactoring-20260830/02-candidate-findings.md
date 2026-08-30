@@ -74,3 +74,11 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Evidence gap`: PostgreSQL `Search` may not treat an empty query as “all records”; this is a separate behavior concern and was not changed.
 - `Out of scope`: interval validation, idempotent/restart-safe shutdown, explicit all-active store operation, pagination beyond 10,000 records, decay error observability, and audit metrics.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/dedup.go`
+
+- `Fact`: the 201-line file mixed exact matching, near matching/ranking, Levenshtein mechanics, and supersession.
+- `Change`: split the workflows and extracted named helpers for duplicate lookup, exclusion, ratio collection, and ranking; retained public names for compatibility.
+- `Behavior risk`: preserve bounded search limits, exact/near result shapes, deleted/excluded filtering, byte-based similarity, equal-ratio ordering, and wrapped errors.
+- `Out of scope`: persisted canonical digests, delimiter rules, Unicode-aware similarity, input limits, deterministic tie-breaking, search-semantic alignment, transactional supersession, and dedup metrics.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
