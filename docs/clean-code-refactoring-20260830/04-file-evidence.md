@@ -136,3 +136,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; `main.go` is 85 lines and `runtime.go` is 33 lines.
 - `Behavior note`: The `--migrate` flag’s existing external-tool behavior remains unchanged.
+### `internal/server/server.go`
+
+- `Candidate review`: The bounded review found transport, auth wrapping, routing, HTTP-server policy, logging, and serving combined in `ListenAndServe`.
+- `Change or disposition`: Extracted `buildHTTPHandler` and `newHTTPServer` into `http_server.go`; retained the public lifecycle methods and `New` composition path.
+- `Review/fix`: Preserved dashboard/public routing, MCP-only authentication, route order, timeout values, logging, unused context signature, `http.ErrServerClosed` handling, and nil-safe shutdown. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; `server.go` is 64 lines and `http_server.go` is 32 lines.
+- `Behavior note`: No endpoint, authentication, timeout, or shutdown policy changed.

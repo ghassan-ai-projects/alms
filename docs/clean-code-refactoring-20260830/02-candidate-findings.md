@@ -118,3 +118,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve version-before-config behavior, database connection before `--migrate` exit, constructor order, GC start/defer timing, `os.Exit` paths, background server startup, and the 10-second shutdown timeout.
 - `Out of scope`: Fixing the misleading migration flag, replacing `os.Exit`, changing startup/shutdown ownership, centralizing versions, or introducing a broad application container.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/server/server.go`
+
+- `Fact`: `ListenAndServe` combined MCP transport creation, auth wrapping, dashboard/MCP routing, HTTP-server policy, logging, and serving in one method; `New` is otherwise an explicit composition path.
+- `Proposal`: Extract handler/mux construction and HTTP-server configuration into focused helpers while retaining the existing lifecycle method and public signature.
+- `Behavior risk`: Preserve auth only around MCP, public dashboard routing, route order, timeout values, nil-safe shutdown, unused context signature, logging, and `http.ErrServerClosed` handling.
+- `Out of scope`: Auth policy, endpoint routing changes, timeout changes, context-driven shutdown, constructor redesign, and MCP registration behavior.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
