@@ -23,3 +23,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: `49ad345` (`refactor: split storemock implementations by responsibility`).
 - Bar result: Met for this file loop. Resulting files: `agent_store.go` 163, `helpers.go` 44, `learning_records.go` 147, `learning_search.go` 89, `learning_sync.go` 97, `protocol_store.go` 148 lines.
 - Behavior note: This is test support used by service tests, but it is a non-test Go file and is included in the 250-line inventory.
+
+### `internal/server/tools.go`
+
+- Candidate review: The bounded review found mixed registration, request parsing, service calls, validation, and response shaping across eight workflows in one 554-line file.
+- Change or disposition: Kept `tools.go` as orchestration only. Split agent registrations into focused tool files; split learning record registration from sync; separated protocol sync/management, health, enrichment, OKF export, and result marshaling. Renamed private registration functions to state intent.
+- Review/fix: Preserved registration order, MCP names/descriptions/schemas, service error-result behavior, sync defaults, search status handling, health timeout, and existing ignored type assertions. Restored unrelated formatting-only drift in `server.go`. Ran `gofmt` on changed server files and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; all changed production server files are at or below 250 lines.
+- Behavior note: No transport validation policy or service behavior was changed.
