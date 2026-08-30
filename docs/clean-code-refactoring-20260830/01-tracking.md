@@ -10,8 +10,8 @@ Tests remain deferred until every production file has reached a terminal status.
 |---:|---|---:|---|---|---|
 | 1 | `internal/service/storemock/mock.go` | 694 | bar_met | `49ad345` | Split into six cohesive files; resulting max is 163 lines; tests deferred. |
 | 2 | `internal/server/tools.go` | 554 | bar_met | `8c83674` | Split into domain and focused tool-registration files; max changed file 79 lines; tests deferred. |
-| 3 | `internal/store/learning_store.go` | 439 | reviewed | — | Split into CRUD, sync, search, mutation, and row-scanning files; tests deferred. |
-| 4 | `internal/service/okf.go` | 325 | queued | — | Split required. |
+| 3 | `internal/store/learning_store.go` | 439 | bar_met | `e353800` | Split into CRUD, sync, search, mutation, and row-scanning files; max changed file 142 lines; tests deferred. |
+| 4 | `internal/service/okf.go` | 325 | reviewed | — | Split into export, options, document, index, and helper files; tests deferred. |
 | 5 | `internal/store/agent_store.go` | 275 | queued | — | Split required. |
 | 6 | `internal/service/learning.go` | 214 | queued | — | — |
 | 7 | `internal/service/gc.go` | 201 | queued | — | — |

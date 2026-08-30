@@ -41,3 +41,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; all resulting production store files are at or below 250 lines.
 - Behavior note: No migration, schema, service interface, or persistence policy was changed.
+
+### `internal/service/okf.go`
+
+- Candidate review: The bounded review found export orchestration, option normalization, frontmatter/body rendering, index rendering, and format helpers mixed in one 325-line file.
+- Change or disposition: Split into `okf.go`, `okf_options.go`, `okf_learning_file.go`, `okf_index.go`, and `okf_helpers.go`. Renamed private helpers to express their intent, including `formatOKFLearningType`, `buildOKFDescription`, `buildOKFLearningSlug`, and `extractEnrichmentStatus`.
+- Review/fix: Preserved stable sort behavior, default and `all` status handling, score filtering, raw ID path construction, byte-based description truncation, malformed-enrichment handling, Markdown title extraction, and error wrapping. Ran `gofmt` on changed files and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; all resulting production service files are at or below 250 lines.
+- Behavior note: No export format or service contract was intentionally changed.
