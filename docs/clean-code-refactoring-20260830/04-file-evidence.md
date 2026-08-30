@@ -95,3 +95,11 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; all resulting production service files are at or below 250 lines.
 - Behavior note: Hash delimiters, Unicode similarity, deterministic tie-breaking, and atomic dedup remain ideas only.
+### `internal/service/scoring.go`
+
+- `Candidate review`: The bounded review found score adjustments, score reads, TTL decay, batch traversal, and arithmetic mixed in one 167-line service file.
+- `Change or disposition`: Kept engine construction and constants in `scoring.go`, moved adjustment workflows and shared adjustment helpers to `scoring_adjustments.go`, and moved single/batch decay plus arithmetic to `scoring_decay.go`.
+- `Review/fix`: Added the required models import after review caught the extracted deleted-record validation dependency. Preserved pinned/deleted precedence, clamping, future-time handling, non-positive TTL behavior, batch limit, and error wrapping. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; resulting production service files are 25, 87, and 91 lines.
+- `Behavior note`: Score atomicity, input validation, pagination, and observability remain ideas only.

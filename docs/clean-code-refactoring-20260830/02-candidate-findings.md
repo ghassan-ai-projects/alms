@@ -82,3 +82,11 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: preserve bounded search limits, exact/near result shapes, deleted/excluded filtering, byte-based similarity, equal-ratio ordering, and wrapped errors.
 - `Out of scope`: persisted canonical digests, delimiter rules, Unicode-aware similarity, input limits, deterministic tie-breaking, search-semantic alignment, transactional supersession, and dedup metrics.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/scoring.go`
+
+- `Fact`: Score adjustment, score reads, TTL decay, batch maintenance, and decay arithmetic were mixed in one 167-line file.
+- `Proposal`: Keep the scoring engine and constants together, split adjustment workflows from decay workflows, and name the score-loading, validation, clamping, and persistence steps explicitly.
+- `Behavior risk`: Preserve pinned precedence over deleted validation, exact error prefixes, asymmetric increment/decrement clamping, future-time decay clamping, non-positive TTL no-op behavior, the 10,000-record batch bound, and batch count semantics.
+- `Out of scope`: Injected clocks, atomic or optimistic score updates, NaN/Inf/negative-input validation, database-side score bounds, pagination beyond 10,000 records, revised changed/skipped counts, and decay observability.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
