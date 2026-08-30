@@ -128,3 +128,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; resulting production config files are 80, 41, and 12 lines.
 - `Behavior note`: No configuration values, precedence, diagnostics, or startup behavior changed.
+### `cmd/alms/main.go`
+
+- `Candidate review`: The bounded review found flags, configuration, database setup, dependency wiring, lifecycle, HTTP startup, and shutdown combined in the composition root.
+- `Change or disposition`: Extracted `runtimeServices` and `buildRuntime` into `cmd/alms/runtime.go`; retained process lifecycle, GC start/defer, explicit `server.New`, signal wait, and shutdown flow in `main`.
+- `Review/fix`: Preserved version and migration ordering, store/service constructor order, GC lifecycle timing, exit paths, server goroutine startup, and shutdown timeout. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; `main.go` is 85 lines and `runtime.go` is 33 lines.
+- `Behavior note`: The `--migrate` flag’s existing external-tool behavior remains unchanged.

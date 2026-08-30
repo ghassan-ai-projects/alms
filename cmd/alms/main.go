@@ -12,7 +12,6 @@ import (
 
 	"github.com/ghassan/alms/internal/config"
 	"github.com/ghassan/alms/internal/server"
-	"github.com/ghassan/alms/internal/service"
 	"github.com/ghassan/alms/internal/store"
 )
 
@@ -54,23 +53,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Init stores (concrete implementations)
-	agentStore := store.NewAgentStore(pool)
-	learningStore := store.NewLearningStore(pool)
-	protocolStore := store.NewProtocolStore(pool)
-
-	// Init services (business logic)
-	registrySvc := service.NewRegistry(agentStore)
-	syncerSvc := service.NewSyncer(learningStore, agentStore, protocolStore)
-	learningSvc := service.NewLearning(learningStore, protocolStore)
-
-	// Init GC service for background garbage collection
-	gcSvc := service.NewGC(learningStore, service.DefaultGCConfig())
-	gcSvc.Start(ctx)
-	defer gcSvc.Stop()
+	runtime := buildRuntime(pool)
+	runtime.gc.Start(ctx)
+	defer runtime.gc.Stop()
 
 	// Init MCP server
-	srv := server.New(&cfg, registrySvc, syncerSvc, learningSvc)
+	srv := server.New(&cfg, runtime.registry, runtime.syncer, runtime.learning)
 
 	// Start server in background goroutine
 	go func() {

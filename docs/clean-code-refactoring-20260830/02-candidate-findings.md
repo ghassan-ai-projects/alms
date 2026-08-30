@@ -111,3 +111,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve default-seeded unmarshalling, explicit-path behavior, first-readable candidate precedence even after parse failure, silent read failures, warning destination/text, and only-non-empty environment overrides. Preserve `Addr` formatting.
 - `Out of scope`: Config validation, default changes, environment names, precedence policy, diagnostics policy, and migration/startup behavior.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `cmd/alms/main.go`
+
+- `Fact`: `main` combined flags, configuration, database setup, store/service wiring, GC lifecycle, HTTP startup, signal waiting, and shutdown in one 97-line composition root.
+- `Proposal`: Extract a small `buildRuntime` dependency-wiring helper while keeping process lifecycle and server construction visible in `main`.
+- `Behavior risk`: Preserve version-before-config behavior, database connection before `--migrate` exit, constructor order, GC start/defer timing, `os.Exit` paths, background server startup, and the 10-second shutdown timeout.
+- `Out of scope`: Fixing the misleading migration flag, replacing `os.Exit`, changing startup/shutdown ownership, centralizing versions, or introducing a broad application container.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
