@@ -8,7 +8,7 @@ Tests remain deferred until every production file has reached a terminal status.
 
 | Order | File | Lines | Status | Commit | Notes |
 |---:|---|---:|---|---|---|
-| 1 | `internal/service/storemock/mock.go` | 694 | queued | — | Split required; inspect whether this generated/mock support file is production scope; no test files are in scope. |
+| 1 | `internal/service/storemock/mock.go` | 694 | reviewed | — | Split into agent, learning, protocol, and shared-helper files; tests deferred. |
 | 2 | `internal/server/tools.go` | 554 | queued | — | Split required. |
 | 3 | `internal/store/learning_store.go` | 439 | queued | — | Split required. |
 | 4 | `internal/service/okf.go` | 325 | queued | — | Split required. |
