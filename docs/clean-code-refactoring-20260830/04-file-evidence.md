@@ -144,3 +144,11 @@ For split files, also record the resulting file names and line counts, and verif
 - `Commit`: Pending.
 - `Bar result`: Pending final status; `server.go` is 64 lines and `http_server.go` is 32 lines.
 - `Behavior note`: No endpoint, authentication, timeout, or shutdown policy changed.
+### `internal/models/protocol.go`
+
+- `Candidate review`: The bounded review found a multi-error accumulator serving one validation rule.
+- `Change or disposition`: Simplified `ProtocolRecord.Validate` to an immediate return for blank/whitespace-only titles; no public symbols or model fields changed.
+- `Review/fix`: Preserved `strings.TrimSpace`, exact `title is required` text, `%w` wrapping, and `ErrValidation` identity. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- `Commit`: Pending.
+- `Bar result`: Pending final status; file remains 33 lines.
+- `Behavior note`: No new protocol validation rules were introduced.

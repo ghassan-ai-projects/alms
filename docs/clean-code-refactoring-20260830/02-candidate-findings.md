@@ -125,3 +125,10 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: Preserve auth only around MCP, public dashboard routing, route order, timeout values, nil-safe shutdown, unused context signature, logging, and `http.ErrServerClosed` handling.
 - `Out of scope`: Auth policy, endpoint routing changes, timeout changes, context-driven shutdown, constructor redesign, and MCP registration behavior.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+## `internal/models/protocol.go`
+
+- `Fact`: `Validate` used a multi-error accumulator for a single title rule in a 33-line model file.
+- `Change`: Replace the accumulator with an immediate validation return while preserving Unicode whitespace handling, original title data, error text, and `%w` wrapping.
+- `Behavior risk`: Do not replace `strings.TrimSpace`, normalize stored titles, or change the `ErrValidation` sentinel.
+- `Out of scope`: Body/tag/version/activity validation, constructor changes, store validation, and API changes.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.
