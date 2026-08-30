@@ -32,3 +32,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; all changed production server files are at or below 250 lines.
 - Behavior note: No transport validation policy or service behavior was changed.
+
+### `internal/store/learning_store.go`
+
+- Candidate review: The bounded review found CRUD, sync transactions, search query construction, mutations, and row scanning mixed in one 439-line file.
+- Change or disposition: Split into `learning_store.go`, `learning_store_sync.go`, `learning_store_search.go`, `learning_store_mutations.go`, and `learning_store_rows.go`. Extracted nullable-field population, row scanning, acknowledgement insertion, and cursor advancement into intent-named helpers.
+- Review/fix: Preserved SQL text, parameter numbering, `%w` wrapping, projections, empty-limit defaults, transaction rollback/commit behavior, and caller-supplied last-ID cursor semantics. Ran `gofmt` on changed files and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; all resulting production store files are at or below 250 lines.
+- Behavior note: No migration, schema, service interface, or persistence policy was changed.
