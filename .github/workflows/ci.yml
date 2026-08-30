@@ -21,7 +21,7 @@ on:
     branches: [main]
 
 env:
-  GO_VERSION: "1.25.12"
+  GO_VERSION: "1.25.13"
   GO_TOOLS_VERSION: "v0.47.0"
   GOVULNCHECK_VERSION: "v1.3.0"
   GOLANGCI_LINT_VERSION: "v2.13.1"

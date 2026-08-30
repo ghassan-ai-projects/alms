@@ -6,7 +6,7 @@ This is the canonical operating guide for coding agents working in this reposito
 
 ALMS is a self-hosted MCP server for shared agent memory. It provides an agent registry, a cross-agent learning store, and protocol distribution for multi-agent systems without becoming an orchestration runtime.
 
-The codebase is a Go 1.22+ single-binary service with PostgreSQL persistence, Streamable HTTP MCP transport, and systemd-oriented deployment assets. Agents should preserve that shape: durable business logic in `internal/service`, pgx-backed persistence in `internal/store`, and thin transport handling in `internal/server`.
+The codebase is a Go 1.25.13+ single-binary service with PostgreSQL persistence, Streamable HTTP MCP transport, and systemd-oriented deployment assets. Agents should preserve that shape: durable business logic in `internal/service`, pgx-backed persistence in `internal/store`, and thin transport handling in `internal/server`.
 
 ## Canonical Instruction Strategy
 
@@ -129,7 +129,7 @@ If `make test` fails or a modified package has 0% coverage, the work is rejected
 
 Prerequisites:
 
-- Go 1.22+ (`go version`)
+- Go 1.25.13+ (`go version`)
 - Docker + Docker Compose
 - `golangci-lint`
 - `golang-migrate`

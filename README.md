@@ -31,7 +31,7 @@ ALMS is designed to stay out of the hot path. Agents should continue working whe
 
 Prerequisites:
 
-- Go 1.22+
+- Go 1.25.13+
 - Docker and Docker Compose
 - `golang-migrate`
 - `golangci-lint`
