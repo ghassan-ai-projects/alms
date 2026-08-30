@@ -57,3 +57,11 @@ No candidate is implemented solely because it was suggested; the owning file loo
 - `Behavior risk`: preserve empty-cursor delegation, active/global filters, descending ordering, inactive protocol listing, parameterization, and wrapped not-found errors.
 - `Out of scope`: deterministic protocol cursors, snapshot semantics, lifecycle operations, tag normalization, nil-pool validation, and compile-time assertions.
 - `Review source`: bounded sub-agent review completed without edits, tests, or commits.
+
+## `internal/service/learning.go`
+
+- `Fact`: the 214-line service combined learning lifecycle, deduplication, enrichment score synchronization, and protocol workflows.
+- `Change`: split deduplication, enrichment parsing, and protocol operations; extracted record preparation, supersession, ID validation, and score synchronization helpers.
+- `Behavior risk`: preserve validation-before-defaults, score/TTL/resolution/severity defaults, timestamp assignment, partial-success supersession, exact/near dedup short-circuits, score precedence, and error wrapping.
+- `Out of scope`: transactional creation/supersession, injected clocks, score validation, atomic enrichment/score updates, object-only patch validation, database-backed dedup, and separate service types.
+- `Review source`: bounded sub-agent review completed without edits, tests, or commits.

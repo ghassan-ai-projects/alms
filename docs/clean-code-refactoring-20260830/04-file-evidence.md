@@ -68,3 +68,12 @@ For split files, also record the resulting file names and line counts, and verif
 - Commit: Pending.
 - Bar result: Pending final status; file remains cohesive and is 166 lines after cleanup.
 - Behavior note: No protocol lifecycle, schema, or service-interface behavior was changed.
+
+### `internal/service/learning.go`
+
+- Candidate review: The bounded review found validation/defaulting/persistence/supersession, deduplication, enrichment score synchronization, and protocol operations mixed in one 214-line service file.
+- Change or disposition: Split deduplication into `learning_dedup.go`, enrichment parsing into `learning_enrichment.go`, and protocol operations into `protocol_service.go`. Extracted `prepareLearningRecord`, `handleLearningSupersession`, `validateLearningID`, and `synchronizeEnrichmentScore` so top-level service methods read as workflows.
+- Review/fix: Corrected the extracted preparation path to preserve `CreatedAt = time.Now()`, defaults, normalization, partial-success supersession behavior, score precedence, and silent non-score enrichment handling. Ran `gofmt` and `git diff --check`; tests deferred by request.
+- Commit: Pending.
+- Bar result: Pending final status; resulting production service files are at or below 250 lines.
+- Behavior note: No public service method name or store interface changed.
