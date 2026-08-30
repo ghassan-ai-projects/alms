@@ -50,20 +50,6 @@ func DefaultConfig() Config {
 	}
 }
 
-// configFilePaths returns the list of candidate config file paths in order
-// of priority (highest first).
-func configFilePaths() []string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		home = "/root"
-	}
-	return []string{
-		filepath.Join(home, ".alms", "alms.yaml"),
-		"/etc/alms/alms.yaml",
-		"/opt/alms/alms.yaml",
-	}
-}
-
 // Load reads configuration from the first available YAML file and applies
 // environment variable overrides. If no file exists, it returns defaults.
 func Load(cfgPath string) Config {
